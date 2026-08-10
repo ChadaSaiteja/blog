@@ -1,4 +1,4 @@
-﻿/* =====================================================
+/* =====================================================
    SAITEJA'S DEV BLOG — Clean Light Design
    Simple, readable, minimal. Good typography first.
    ===================================================== */
@@ -384,30 +384,53 @@ img { max-width: 100%; display: block; }
 .sidebar-cats { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: var(--space-sm); }
 
 /* =====================================================
-   BLOG CARDS — stacked row list style
+   BLOG CARDS — Grid Card Style
    ===================================================== */
 .posts-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1px;
-  background: var(--border-light);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  gap: var(--space-lg);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
 }
 
-.filterable-post { background: var(--surface); }
+@media (min-width: 640px) {
+  .posts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .posts-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.filterable-post {
+  display: flex;
+  height: 100%;
+}
 
 .blog-card {
+  width: 100%;
   background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: var(--space-lg);
-  transition: background var(--transition);
+  transition: all var(--transition);
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
-.blog-card:hover { background: var(--bg-subtle); }
+.blog-card:hover {
+  background: var(--surface);
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
 
 .blog-card-meta {
   display: flex;
@@ -454,7 +477,7 @@ img { max-width: 100%; display: block; }
   color: var(--text-secondary);
   line-height: 1.65;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -463,7 +486,8 @@ img { max-width: 100%; display: block; }
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
-  margin-top: 0.4rem;
+  margin-top: auto;
+  padding-top: var(--space-xs);
 }
 
 /* Badges */

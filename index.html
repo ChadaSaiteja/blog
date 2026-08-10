@@ -12,11 +12,6 @@ description: "Technical articles on Go, Kafka, distributed systems, and backend 
 </div>
 
 <div class="blog-controls">
-  <div class="search-box">
-    <span class="search-box-icon">🔍</span>
-    <input type="text" id="search-input" placeholder="Search articles..." autocomplete="off" aria-label="Search articles">
-  </div>
-
   <div class="filter-tabs" id="filter-tabs">
     <button class="filter-tab active" data-filter="all">All</button>
     <button class="filter-tab" data-filter="go">Go</button>
@@ -39,19 +34,17 @@ description: "Technical articles on Go, Kafka, distributed systems, and backend 
 
   <div class="no-results" id="no-results" style="display:none;">
     <p style="font-size:1.1rem; margin-bottom:0.5rem;">No articles found</p>
-    <p style="color:var(--text-muted); font-size:0.9rem;">Try a different search term or category.</p>
+    <p style="color:var(--text-muted); font-size:0.9rem;">Try selecting a different category.</p>
   </div>
 </div>
 
 <script>
-  const searchInput = document.getElementById('search-input');
   const filterTabs = document.querySelectorAll('.filter-tab');
   const posts = document.querySelectorAll('.filterable-post');
   const noResults = document.getElementById('no-results');
   const countEl = document.getElementById('posts-count');
 
   function filterPosts() {
-    const query = searchInput.value.toLowerCase().trim();
     const activeFilter = document.querySelector('.filter-tab.active')?.dataset.filter || 'all';
     let visible = 0;
 
@@ -64,10 +57,9 @@ description: "Technical articles on Go, Kafka, distributed systems, and backend 
       const tags = Array.from(card.querySelectorAll('.tag-badge')).map(b => b.textContent.toLowerCase()).join(' ');
       const text = title + ' ' + desc + ' ' + cats + ' ' + tags;
 
-      const matchSearch = !query || text.includes(query);
       const matchFilter = activeFilter === 'all' || text.includes(activeFilter);
 
-      if (matchSearch && matchFilter) {
+      if (matchFilter) {
         post.style.display = '';
         visible++;
       } else {
@@ -78,8 +70,6 @@ description: "Technical articles on Go, Kafka, distributed systems, and backend 
     countEl.textContent = visible + (visible === 1 ? ' article' : ' articles');
     noResults.style.display = visible === 0 ? 'block' : 'none';
   }
-
-  if (searchInput) searchInput.addEventListener('input', filterPosts);
 
   filterTabs.forEach(tab => {
     tab.addEventListener('click', () => {
