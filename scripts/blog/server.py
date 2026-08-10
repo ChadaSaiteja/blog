@@ -250,54 +250,12 @@ def render_blog_card(post_dict):
 # --- PUBLIC ROUTE SERVINGS ---
 
 @app.route('/')
-def home_page():
-    posts = get_all_posts(include_drafts=False)
-    
-    # Load index file (strip Jekyll frontmatter)
-    with open(os.path.join(WORKSPACE_DIR, "index.html"), 'r', encoding='utf-8') as f:
-        home_content = strip_jekyll_frontmatter(f.read())
-        
-    # Render loop in home content
-    loop_regex = r'\{%.*?for post in posts limit: 3.*?%\}(.*?)\{%.*?endfor.*?%\}'
-    loop_match = re.search(loop_regex, home_content, re.DOTALL)
-    
-    cards_html = ""
-    if loop_match and len(posts) > 0:
-        for post in posts[:3]:
-            cards_html += render_blog_card(post)
-    else:
-        cards_html = '<p style="color: var(--text-secondary);">No articles published yet.</p>'
-        
-    home_content = re.sub(loop_regex, cards_html, home_content, flags=re.DOTALL)
-    
-    # Categories listing emulation
-    cats = set()
-    for post in posts:
-        for c in post.get("categories", []):
-            cats.add(c)
-            
-    cats_html = ""
-    for c in sorted(list(cats)):
-        cats_html += f'<span class="badge category-badge" style="font-size: 0.85rem; padding: 0.3rem 0.7rem; cursor: pointer;" onclick="location.href=\'/blog?category={c.lower()}\'">{c}</span>\n'
-    if not cats_html:
-        cats_html = '<p style="color: var(--text-muted); font-size: 0.9rem;">Categories will show up here.</p>'
-        
-    cats_regex = r'\{%.*?for cat in site\.categories.*?%\}.*?\{%.*?endfor.*?%\}'
-    home_content = re.sub(cats_regex, cats_html, home_content, flags=re.DOTALL)
-    
-    # Wrap in default layout
-    with open(os.path.join(WORKSPACE_DIR, "_layouts", "default.html"), 'r', encoding='utf-8') as f:
-        default_layout = strip_jekyll_frontmatter(f.read())
-        
-    final_html = emulate_liquid_render(default_layout, {"title": "Home"}, home_content)
-    return final_html
-
 @app.route('/blog')
 @app.route('/blog/')
 def blog_list_page():
     posts = get_all_posts(include_drafts=False)
     
-    with open(os.path.join(WORKSPACE_DIR, "blog", "index.html"), 'r', encoding='utf-8') as f:
+    with open(os.path.join(WORKSPACE_DIR, "index.html"), 'r', encoding='utf-8') as f:
         blog_content = strip_jekyll_frontmatter(f.read())
         
     loop_regex = r'\{%.*?for post in sorted_posts.*?%\}(.*?)\{%.*?endfor.*?%\}'
