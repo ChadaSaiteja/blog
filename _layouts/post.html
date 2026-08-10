@@ -1,0 +1,91 @@
+---
+layout: default
+---
+<div class="post-container">
+  <article class="post-main">
+    <a href="{{ site.baseurl }}/blog/" class="back-link">&larr; Back to Blog</a>
+
+    <header class="post-header">
+      <div class="post-meta-row">
+        <span>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 0a.5.5 0 0 1 .5.5V2h5V.5a.5.5 0 0 1 1 0V2H13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h1.5V.5A.5.5 0 0 1 5 0zm-1 4H3a1 1 0 0 0-1 1v1h12V5a1 1 0 0 0-1-1H11V4H5v.5H5V4z"/></svg>
+          {{ page.date | date: "%B %d, %Y" }}
+        </span>
+        <span>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/></svg>
+          {{ page.reading_time }}
+        </span>
+        <span>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/></svg>
+          {{ page.author }}
+        </span>
+      </div>
+
+      <h1 class="post-title">{{ page.title }}</h1>
+
+      {% if page.description %}
+      <p class="post-description">{{ page.description }}</p>
+      {% endif %}
+
+      {% if page.categories or page.tags %}
+      <div class="post-taxonomies">
+        {% for cat in page.categories %}
+          <span class="badge category-badge">{{ cat }}</span>
+        {% endfor %}
+        {% for tag in page.tags %}
+          <span class="badge tag-badge">#{{ tag }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </header>
+
+    <hr class="post-divider">
+
+    <div class="prose" id="post-content">
+      {{ content }}
+    </div>
+  </article>
+
+  <aside class="post-sidebar">
+    <nav class="toc-widget" id="toc-widget" aria-label="Table of contents">
+      <h4>Contents</h4>
+      <ul id="toc-list"></ul>
+    </nav>
+  </aside>
+</div>
+
+<script>
+  // Auto-generate TOC from headings
+  const headings = document.querySelectorAll('.prose h2, .prose h3');
+  const tocList = document.getElementById('toc-list');
+
+  if (headings.length > 0 && tocList) {
+    headings.forEach((h, i) => {
+      const id = h.id || 'heading-' + i;
+      h.id = id;
+      const li = document.createElement('li');
+      li.style.paddingLeft = h.tagName === 'H3' ? '0.75rem' : '0';
+      const a = document.createElement('a');
+      a.href = '#' + id;
+      a.textContent = h.textContent;
+      li.appendChild(a);
+      tocList.appendChild(li);
+    });
+
+    // Highlight active heading on scroll
+    const tocLinks = tocList.querySelectorAll('a');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          tocLinks.forEach(l => l.classList.remove('active'));
+          const active = tocList.querySelector('a[href="#' + entry.target.id + '"]');
+          if (active) active.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-20% 0% -70% 0%' });
+
+    headings.forEach(h => observer.observe(h));
+  } else if (document.getElementById('toc-widget')) {
+    document.getElementById('toc-widget').style.display = 'none';
+  }
+</script>

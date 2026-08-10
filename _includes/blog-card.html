@@ -1,0 +1,26 @@
+<article class="blog-card">
+  <div class="blog-card-meta">
+    <span class="blog-card-date">{{ post.date | date: "%B %d, %Y" }}</span>
+    <span class="meta-divider">&middot;</span>
+    <span class="blog-card-read-time">
+      {% if post.reading_time %}{{ post.reading_time }}{% else %}5 min read{% endif %}
+    </span>
+  </div>
+  
+  <h2 class="blog-card-title">
+    <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+  </h2>
+  
+  <p class="blog-card-description">
+    {{ post.description | default: post.excerpt | strip_html | truncatewords: 25 }}
+  </p>
+  
+  <div class="blog-card-taxonomies">
+    {% for cat in post.categories | limit: 2 %}
+      <span class="badge category-badge">{{ cat }}</span>
+    {% endfor %}
+    {% for tag in post.tags | limit: 3 %}
+      <span class="badge tag-badge">#{{ tag }}</span>
+    {% endfor %}
+  </div>
+</article>

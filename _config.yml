@@ -1,0 +1,50 @@
+title: "Saiteja's Dev Blog"
+description: "A technical blog about backend systems, distributed architectures, and software engineering."
+url: "https://chadasaiteja.github.io"
+
+# IMPORTANT: Set this to match your GitHub repo name
+# e.g. if repo is github.com/chadasaiteja/blog → baseurl: "/blog"
+# e.g. if repo is github.com/chadasaiteja/devblog → baseurl: "/devblog"
+baseurl: "/blog"
+
+# Permalinks — no /blog/ prefix here since baseurl already adds /blog
+permalink: /:title/
+
+# Markdown and Syntax Highlighting
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+
+# GitHub Pages plugins
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Sass configuration
+sass:
+  style: compressed
+  sass_dir: _sass
+
+# Exclusions
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - package.json
+  - package-lock.json
+  - node_modules/
+  - scripts/
+  - admin/
+  - tests/
+  - requirements.txt
+  - .env
+  - .env.example
+  - README.md
+  - LICENSE
+  - .git/
+  - task.md
+  - implementation_plan.md
+  - walkthrough.md
+  - chadasaiteja_static_blog_system_updated_master_prompt.md

@@ -1,0 +1,73 @@
+// Syntax highlighting
+.highlight {
+  color: #e6edf3;
+  
+  .c { color: #8b949e; font-style: italic; }
+  .err { color: #f85149; }
+  .g { color: #e6edf3; }
+  .k { color: #ff7b72; font-weight: 500; }
+  .l { color: #a5d6ff; }
+  .n { color: #e6edf3; }
+  .o { color: #ff7b72; }
+  .x { color: #e6edf3; }
+  .p { color: #e6edf3; }
+  .cm { color: #8b949e; font-style: italic; }
+  .cp { color: #8b949e; font-weight: bold; }
+  .c1 { color: #8b949e; font-style: italic; }
+  .cs { color: #8b949e; font-weight: bold; font-style: italic; }
+  .gd { color: #ffa198; background-color: #490e15; }
+  .ge { color: #e6edf3; font-style: italic; }
+  .gr { color: #ffa198; }
+  .gh { color: #79c0ff; font-weight: bold; }
+  .gi { color: #56d364; background-color: #0e3016; }
+  .go { color: #8b949e; }
+  .gp { color: #8b949e; }
+  .gs { color: #e6edf3; font-weight: bold; }
+  .gu { color: #79c0ff; font-weight: bold; }
+  .gt { color: #ffa198; }
+  .kc { color: #ff7b72; }
+  .kd { color: #ff7b72; }
+  .kn { color: #ff7b72; }
+  .kp { color: #ff7b72; }
+  .kr { color: #ff7b72; }
+  .kt { color: #ff7b72; }
+  .ld { color: #e6edf3; }
+  .m { color: #79c0ff; }
+  .s { color: #a5d6ff; }
+  .na { color: #7eea85; }
+  .nb { color: #e6edf3; }
+  .nc { color: #d2a8ff; font-weight: bold; }
+  .no { color: #79c0ff; }
+  .nd { color: #d2a8ff; font-weight: bold; }
+  .ni { color: #e6edf3; }
+  .ne { color: #f0883e; font-weight: bold; }
+  .nf { color: #d2a8ff; }
+  .nl { color: #e6edf3; }
+  .nn { color: #ff7b72; }
+  .nx { color: #e6edf3; }
+  .py { color: #79c0ff; }
+  .nt { color: #7eea85; }
+  .nv { color: #79c0ff; }
+  .ow { color: #ff7b72; }
+  .w { color: #8b949e; }
+  .mf { color: #79c0ff; }
+  .mh { color: #79c0ff; }
+  .mi { color: #79c0ff; }
+  .mo { color: #79c0ff; }
+  .sb { color: #a5d6ff; }
+  .sc { color: #a5d6ff; }
+  .sd { color: #8b949e; }
+  .s2 { color: #a5d6ff; }
+  .se { color: #79c0ff; }
+  .sh { color: #a5d6ff; }
+  .si { color: #a5d6ff; }
+  .sx { color: #a5d6ff; }
+  .sr { color: #7eea85; }
+  .s1 { color: #a5d6ff; }
+  .ss { color: #a5d6ff; }
+  .bp { color: #e6edf3; }
+  .vc { color: #79c0ff; }
+  .vg { color: #79c0ff; }
+  .vi { color: #79c0ff; }
+  .il { color: #79c0ff; }
+}

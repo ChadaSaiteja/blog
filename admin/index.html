@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | My Blog Publisher</title>
+  <link rel="stylesheet" href="/admin/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="admin-header">
+    <div class="header-container">
+      <div class="logo">
+        <span class="logo-icon">&para;</span>
+        <h1>My Blog Publisher</h1>
+      </div>
+      <div class="env-status" id="env-status-badge">
+        Checking systems...
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section id="screen-dashboard" class="screen active">
+      <div class="screen-header">
+        <h2>Your Articles</h2>
+        <button class="btn btn-primary" onclick="showScreen('screen-create')">+ Create New Blog</button>
+      </div>
+
+      <div class="posts-table-wrapper">
+        <table class="posts-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Date</th>
+              <th>Categories</th>
+              <th>Status</th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="posts-list-body">
+            <tr>
+              <td colspan="5" class="loading-cell">Loading your articles...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="screen-create" class="screen">
+      <div class="screen-header">
+        <button class="btn btn-text" onclick="showScreen('screen-dashboard')">&larr; Back to Dashboard</button>
+        <h2>Create with AI Assistant</h2>
+      </div>
+
+      <form id="create-blog-form" class="admin-form" onsubmit="generateAIArticle(event)">
+        <div class="form-grid">
+          <div class="form-group col-full">
+            <label for="input-topic">Topic / Core Idea <span class="required">*</span></label>
+            <input type="text" id="input-topic" required placeholder="e.g. Go channels and select statement behavior">
+          </div>
+
+          <div class="form-group col-full">
+            <label for="input-title">Working Title (Optional)</label>
+            <input type="text" id="input-title" placeholder="e.g. Deep Dive into Go Concurrency Channels">
+          </div>
+
+          <div class="form-group">
+            <label for="input-notes">Raw Notes & Context</label>
+            <textarea id="input-notes" rows="6" placeholder="Explain the main ideas..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="input-tech-details">Technical Details / Edge Cases</label>
+            <textarea id="input-tech-details" rows="6" placeholder="Specify details..."></textarea>
+          </div>
+
+          <div class="form-group col-full">
+            <label for="input-examples">Code Snippet / Examples</label>
+            <textarea id="input-examples" rows="5" class="code-font" placeholder="// Provide sample code..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="input-categories">Categories (comma-separated)</label>
+            <input type="text" id="input-categories" placeholder="e.g. Go, Backend">
+          </div>
+
+          <div class="form-group">
+            <label for="input-tags">Tags (comma-separated)</label>
+            <input type="text" id="input-tags" placeholder="e.g. golang, channels">
+          </div>
+
+          <div class="form-group col-full">
+            <label for="input-references">Reference URLs (comma-separated)</label>
+            <input type="text" id="input-references" placeholder="e.g. https://go.dev/doc/effective_go">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="showScreen('screen-dashboard')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-generate">Research & Generate Article</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="screen-edit" class="screen">
+      <div class="screen-header">
+        <button class="btn btn-text" onclick="showScreen('screen-dashboard')">&larr; Dashboard</button>
+        <h2 id="edit-screen-title">Edit Draft</h2>
+        <div class="edit-actions">
+          <button class="btn btn-secondary" onclick="runQualityCheck()">Quality Check</button>
+          <button class="btn btn-secondary" onclick="openPreviewTab()">Live Preview</button>
+          <button class="btn btn-primary" onclick="saveDraftContent()">Save Changes</button>
+          <button class="btn btn-accent" id="btn-publish-trigger" onclick="openPublishModal()">Publish to Git (PR)</button>
+        </div>
+      </div>
+
+      <div class="editor-grid">
+        <div class="editor-metadata">
+          <h3>Frontmatter Metadata</h3>
+          <div class="metadata-form">
+            <div class="form-group">
+              <label for="edit-title">Title</label>
+              <input type="text" id="edit-title">
+            </div>
+            <div class="form-group">
+              <label for="edit-description">Description (SEO)</label>
+              <textarea id="edit-description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="edit-categories">Categories (comma-separated)</label>
+              <input type="text" id="edit-categories">
+            </div>
+            <div class="form-group">
+              <label for="edit-tags">Tags (comma-separated)</label>
+              <input type="text" id="edit-tags">
+            </div>
+            <div class="form-group-checkbox">
+              <input type="checkbox" id="edit-draft">
+              <label for="edit-draft">Keep as Draft (Hidden from listing)</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="editor-body">
+          <h3>Markdown Content</h3>
+          <textarea id="edit-content-textarea" class="code-font" rows="25"></textarea>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modal-quality" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Quality Analyzer Results</h3>
+        <span class="close-btn" onclick="closeModal('modal-quality')">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="quality-summary">
+          <div class="score-radial">
+            <span class="score-number" id="quality-score-value">0</span>
+            <span class="score-label">out of 100</span>
+          </div>
+          <div class="score-status" id="quality-status-text">Checking...</div>
+        </div>
+        <h4 class="section-title">Rubric Breakdown</h4>
+        <div class="score-bars" id="quality-scores-list"></div>
+        <h4 class="section-title">Warnings / Actions Needed</h4>
+        <ul class="warnings-list" id="quality-warnings-list"></ul>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('modal-quality')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-publish" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Publish to GitHub</h3>
+        <span class="close-btn" onclick="closeModal('modal-publish')">&times;</span>
+      </div>
+      <form onsubmit="submitPublish(event)">
+        <div class="modal-body">
+          <div id="publish-flow-input">
+            <p>Publishing will automatically create a new Git branch, commit your article, and create a Pull Request on GitHub.</p>
+            <div class="form-group">
+              <label for="publish-commit-msg">Commit Message <span class="required">*</span></label>
+              <input type="text" id="publish-commit-msg" required placeholder="e.g. Add blog: Understanding Kafka Message Ordering">
+            </div>
+          </div>
+          <div id="publish-flow-loading" style="display: none; text-align: center; padding: 2rem 0;">
+            <div class="loader"></div>
+            <p style="margin-top: 1rem;" id="publish-loading-text">Creating Git branch and Pull Request...</p>
+          </div>
+          <div id="publish-flow-success" style="display: none;">
+            <div class="success-icon">&checkmark;</div>
+            <h4 style="text-align: center; margin-bottom: 1rem;">Pull Request Created Successfully!</h4>
+            <p>Your blog has been submitted. Review and merge the PR to deploy it to GitHub Pages:</p>
+            <div class="pr-link-box">
+              <a href="#" id="publish-pr-url" target="_blank" class="pr-link-anchor">Open Pull Request &rarr;</a>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" id="publish-modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-publish')">Cancel</button>
+          <button type="submit" class="btn btn-accent">Create Pull Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="overlay-loader" class="overlay-loader">
+    <div class="overlay-content">
+      <div class="loader"></div>
+      <h3 style="margin-top: 1.5rem;">AI Publisher is processing...</h3>
+      <p id="overlay-status">Performing research and compiling draft templates. This can take up to a minute.</p>
+    </div>
+  </div>
+
+  <script>
+    let activeFilename = null;
+    let activePostMetadata = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+      checkEnv();
+      loadPosts();
+    });
+
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    async function checkEnv() {
+      try {
+        const response = await fetch('/api/env-check');
+        const data = await response.json();
+        const badge = document.getElementById('env-status-badge');
+        
+        let text = [];
+        let isConfigured = false;
+        
+        if (data.openai || data.anthropic) {
+          text.push(`AI: Active (${data.provider})`);
+          isConfigured = true;
+        } else {
+          text.push('AI: API Key Missing');
+        }
+        
+        if (data.github) {
+          text.push('GitHub: Linked');
+        } else {
+          text.push('GitHub: Local Only');
+        }
+        
+        badge.textContent = text.join(' | ');
+        badge.className = isConfigured ? 'env-status active' : 'env-status warning';
+      } catch (err) {
+        console.error('Failed checking env status:', err);
+      }
+    }
+
+    async function loadPosts() {
+      const tbody = document.getElementById('posts-list-body');
+      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Loading your articles...</td></tr>';
+      
+      try {
+        const response = await fetch('/api/posts');
+        const posts = await response.json();
+        
+        if (posts.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">No articles found. Click "+ Create New Blog" to get started!</td></tr>';
+          return;
+        }
+        
+        tbody.innerHTML = '';
+        posts.forEach(post => {
+          const tr = document.createElement('tr');
+          const statusBadge = post.draft 
+            ? '<span class="status-badge draft">Draft</span>' 
+            : '<span class="status-badge published">Published</span>';
+            
+          const catBadges = (post.categories || [])
+            .map(c => `<span class="table-badge">${c}</span>`)
+            .join('');
+
+          tr.innerHTML = `
+            <td>
+              <div class="post-title-cell">
+                <span class="title-text">${post.title}</span>
+                <span class="file-text">${post.filename}</span>
+              </div>
+            </td>
+            <td>${post.date || 'No Date'}</td>
+            <td>${catBadges}</td>
+            <td>${statusBadge}</td>
+            <td class="actions-col">
+              <button class="btn btn-sm btn-secondary" onclick="editPost('${post.filename}')">Edit</button>
+              <button class="btn btn-sm btn-secondary" onclick="previewPost('${post.filename}')">Preview</button>
+              <button class="btn btn-sm btn-danger" onclick="deleteDraft('${post.filename}')">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" class="error-cell">Error loading articles: ${err.message}</td></tr>`;
+      }
+    }
+
+    async function editPost(filename) {
+      activeFilename = filename;
+      try {
+        const response = await fetch(`/api/posts/\${filename}`);
+        const data = await response.json();
+        
+        activePostMetadata = data.metadata;
+        
+        document.getElementById('edit-screen-title').textContent = `Editing: \${filename}`;
+        document.getElementById('edit-title').value = activePostMetadata.title || '';
+        document.getElementById('edit-description').value = activePostMetadata.description || '';
+        document.getElementById('edit-categories').value = (activePostMetadata.categories || []).join(', ');
+        document.getElementById('edit-tags').value = (activePostMetadata.tags || []).join(', ');
+        document.getElementById('edit-draft').checked = activePostMetadata.draft !== false;
+        
+        document.getElementById('edit-content-textarea').value = data.body;
+        
+        showScreen('screen-edit');
+      } catch (err) {
+        alert('Failed loading post: ' + err.message);
+      }
+    }
+
+    function previewPost(filename) {
+      window.open(`/preview/\${filename}`, '_blank');
+    }
+    
+    function openPreviewTab() {
+      if (activeFilename) {
+        previewPost(activeFilename);
+      }
+    }
+
+    async function saveDraftContent() {
+      if (!activeFilename) return;
+      
+      const categoriesText = document.getElementById('edit-categories').value;
+      const tagsText = document.getElementById('edit-tags').value;
+      
+      const updatedMetadata = {
+        ...activePostMetadata,
+        title: document.getElementById('edit-title').value,
+        description: document.getElementById('edit-description').value,
+        categories: categoriesText.split(',').map(s => s.trim()).filter(s => s.length > 0),
+        tags: tagsText.split(',').map(s => s.trim()).filter(s => s.length > 0),
+        draft: document.getElementById('edit-draft').checked
+      };
+
+      const requestBody = {
+        filename: activeFilename,
+        metadata: updatedMetadata,
+        body: document.getElementById('edit-content-textarea').value
+      };
+
+      try {
+        const response = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          activePostMetadata = data.metadata;
+          alert('Draft saved successfully!');
+          loadPosts();
+        } else {
+          alert('Failed saving draft: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error saving draft: ' + err.message);
+      }
+    }
+
+    async function deleteDraft(filename) {
+      if (!confirm(`Are you sure you want to delete the draft \${filename}? This action cannot be undone.`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/posts/\${filename}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) {
+          loadPosts();
+        } else {
+          alert('Delete failed: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error deleting post: ' + err.message);
+      }
+    }
+
+    async function runQualityCheck() {
+      if (!activeFilename) return;
+      await saveDraftContent();
+      
+      showModal('modal-quality');
+      const scoreNum = document.getElementById('quality-score-value');
+      const statusText = document.getElementById('quality-status-text');
+      const scoresList = document.getElementById('quality-scores-list');
+      const warningsList = document.getElementById('quality-warnings-list');
+      
+      scoreNum.textContent = '--';
+      statusText.textContent = 'Analyzing post structure and readability...';
+      scoresList.innerHTML = '';
+      warningsList.innerHTML = '<li class="loading-warns">Calculating diagnostics...</li>';
+      
+      try {
+        const response = await fetch(`/api/posts/\${activeFilename}/quality`);
+        const data = await response.json();
+        
+        if (data.error) {
+          statusText.textContent = 'Error: ' + data.error;
+          warningsList.innerHTML = `<li>Error: \${data.error}</li>`;
+          return;
+        }
+        
+        scoreNum.textContent = data.score;
+        
+        if (data.score >= 90) {
+          statusText.textContent = 'Exceptional Quality!';
+          statusText.style.color = '#10b981';
+        } else if (data.score >= 80) {
+          statusText.textContent = 'Passed Quality Guidelines';
+          statusText.style.color = '#3b82f6';
+        } else {
+          statusText.textContent = 'Needs Revision';
+          statusText.style.color = '#f59e0b';
+        }
+        
+        const maxes = {
+          content_quality: 30,
+          technical_accuracy: 20,
+          structure: 15,
+          examples: 10,
+          readability: 10,
+          references: 10,
+          seo: 5
+        };
+        
+        scoresList.innerHTML = '';
+        Object.keys(data.scores).forEach(key => {
+          const scoreVal = data.scores[key];
+          const maxVal = maxes[key] || 10;
+          const pct = (scoreVal / maxVal) * 100;
+          const barLabel = key.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+          
+          const barDiv = document.createElement('div');
+          barDiv.className = 'rubric-bar-item';
+          barDiv.innerHTML = `
+            <div class="rubric-bar-header">
+              <span>\${barLabel}</span>
+              <span>\${scoreVal}/\${maxVal}</span>
+            </div>
+            <div class="rubric-bar-outer">
+              <div class="rubric-bar-inner" style="width: \${pct}%"></div>
+            </div>
+          `;
+          scoresList.appendChild(barDiv);
+        });
+        
+        warningsList.innerHTML = '';
+        if (data.warnings.length === 0) {
+          warningsList.innerHTML = '<li class="no-warns-success">&checkmark; Zero quality warnings. The article matches all technical standards!</li>';
+        } else {
+          data.warnings.forEach(warn => {
+            const li = document.createElement('li');
+            li.textContent = warn;
+            warningsList.appendChild(li);
+          });
+        }
+      } catch (err) {
+        statusText.textContent = 'Failed';
+        warningsList.innerHTML = `<li>Connection failure: \${err.message}</li>`;
+      }
+    }
+
+    async function generateAIArticle(event) {
+      event.preventDefault();
+      
+      const topic = document.getElementById('input-topic').value;
+      const title = document.getElementById('input-title').value;
+      const notes = document.getElementById('input-notes').value;
+      const techDetails = document.getElementById('input-tech-details').value;
+      const examples = document.getElementById('input-examples').value;
+      
+      const categories = document.getElementById('input-categories').value
+        .split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const tags = document.getElementById('input-tags').value
+        .split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const references = document.getElementById('input-references').value
+        .split(',').map(s => s.trim()).filter(s => s.length > 0);
+        
+      showOverlay('overlay-loader', 'Researching and drafting article...', 'The AI agent is searching documentation resources and drafting structured markdown blocks. This may take up to a minute.');
+      
+      try {
+        const response = await fetch('/api/ai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic, title, notes, tech_details: techDetails, examples, categories, tags, references
+          })
+        });
+        const data = await response.json();
+        
+        hideOverlay('overlay-loader');
+        
+        if (data.success) {
+          await editPost(data.filename);
+          document.getElementById('create-blog-form').reset();
+        } else {
+          alert('AI Generation Failed: ' + data.error);
+        }
+      } catch (err) {
+        hideOverlay('overlay-loader');
+        alert('Connection error during generation: ' + err.message);
+      }
+    }
+
+    function openPublishModal() {
+      document.getElementById('publish-flow-input').style.display = 'block';
+      document.getElementById('publish-flow-loading').style.display = 'none';
+      document.getElementById('publish-flow-success').style.display = 'none';
+      
+      const modalFooter = document.getElementById('publish-modal-footer');
+      modalFooter.style.display = 'flex';
+      
+      const title = document.getElementById('edit-title').value;
+      document.getElementById('publish-commit-msg').value = `Add blog: \${title}`;
+      
+      showModal('modal-publish');
+    }
+
+    async function submitPublish(event) {
+      event.preventDefault();
+      if (!activeFilename) return;
+      await saveDraftContent();
+      
+      const commitMessage = document.getElementById('publish-commit-msg').value;
+      
+      document.getElementById('publish-flow-input').style.display = 'none';
+      document.getElementById('publish-flow-loading').style.display = 'block';
+      document.getElementById('publish-modal-footer').style.display = 'none';
+      
+      try {
+        const response = await fetch(`/api/posts/\${activeFilename}/publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ commit_message: commitMessage })
+        });
+        const data = await response.json();
+        
+        document.getElementById('publish-flow-loading').style.display = 'none';
+        
+        if (data.success) {
+          document.getElementById('publish-flow-success').style.display = 'block';
+          const prAnchor = document.getElementById('publish-pr-url');
+          prAnchor.href = data.pr_url;
+          prAnchor.textContent = `Open Pull Request #\${data.pr_url.split('/').pop()} &rarr;`;
+          loadPosts();
+        } else {
+          document.getElementById('publish-flow-input').style.display = 'block';
+          document.getElementById('publish-modal-footer').style.display = 'flex';
+          alert('Publishing failed: ' + data.error);
+        }
+      } catch (err) {
+        document.getElementById('publish-flow-input').style.display = 'block';
+        document.getElementById('publish-modal-footer').style.display = 'flex';
+        document.getElementById('publish-flow-loading').style.display = 'none';
+        alert('Connection error while publishing: ' + err.message);
+      }
+    }
+
+    function showModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+    
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function showOverlay(id, title, desc) {
+      const overlay = document.getElementById(id);
+      overlay.querySelector('h3').textContent = title;
+      overlay.querySelector('p').textContent = desc;
+      overlay.classList.add('active');
+    }
+    
+    function hideOverlay(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+  </script>
+</body>
+</html>

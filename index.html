@@ -1,0 +1,66 @@
+---
+layout: default
+title: "Home"
+description: "Saiteja Chada's personal dev blog — practical notes on Go, Kafka, distributed systems, and backend engineering."
+---
+
+<div class="dev-intro animate-fade">
+  <span class="intro-eyebrow">Available for senior backend roles</span>
+
+  <h1 class="intro-title">
+    Hi, I'm <span class="accent">Saiteja Chada</span>
+  </h1>
+
+  <p class="intro-text">
+    Software Engineer specializing in backend systems, distributed architectures, and event-driven microservices.
+    I write practical notes from real engineering work — no fluff, just signal.
+  </p>
+
+  <div class="intro-actions">
+    <a href="{{ site.baseurl }}/blog/" class="btn btn-primary">Read the Blog &rarr;</a>
+    <a href="https://github.com/chadasaiteja" class="btn btn-outline" target="_blank" rel="noopener">View GitHub</a>
+  </div>
+
+  <div class="tech-stack">
+    <span class="tech-pill">⚡ Go</span>
+    <span class="tech-pill">🚀 Apache Kafka</span>
+    <span class="tech-pill">🔧 TypeScript</span>
+    <span class="tech-pill">☁️ AWS</span>
+    <span class="tech-pill">🐳 Docker</span>
+    <span class="tech-pill">📊 PostgreSQL</span>
+    <span class="tech-pill">♻️ Redis</span>
+  </div>
+</div>
+
+<div class="home-layout">
+  <div>
+    <div class="section-header">
+      <h2 class="section-title">Latest Articles</h2>
+      <a href="{{ site.baseurl }}/blog/" class="section-link">View all &rarr;</a>
+    </div>
+
+    <div class="posts-grid">
+      {% for post in posts limit: 3 %}
+        {% include blog-card.html %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <aside class="home-sidebar">
+    <div class="sidebar-widget">
+      <h3>Topics</h3>
+      <div class="sidebar-cats">
+        {% for cat in site.categories %}
+          <span class="badge category-badge" style="cursor:pointer; margin-bottom:0.25rem;" onclick="location.href='{{ site.baseurl }}/blog/'">{{ cat[0] }}</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="sidebar-widget">
+      <h3>About</h3>
+      <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.65;">
+        Backend Engineer at scale. Previously worked on high-throughput event pipelines processing millions of events per day.
+      </p>
+    </div>
+  </aside>
+</div>

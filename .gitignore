@@ -1,0 +1,17 @@
+# Local environment variables
+.env
+
+# Jekyll build and cache
+_site/
+.jekyll-cache/
+.jekyll-metadata
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDEs and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
