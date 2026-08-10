@@ -2,8 +2,7 @@
 layout: post
 title: "Mastering Go Concurrency Patterns"
 description: "A deep dive into Go channels, select blocks, and worker pools for highly concurrent programs."
-date: 2026-08-15
-updated: 2026-08-15
+date: 2026-08-11
 categories:
   - Go
   - Concurrency
