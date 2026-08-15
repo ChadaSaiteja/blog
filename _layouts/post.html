@@ -89,3 +89,20 @@ layout: default
     document.getElementById('toc-widget').style.display = 'none';
   }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const mermaidBlocks = document.querySelectorAll('pre code.language-mermaid, pre.mermaid, code.language-mermaid');
+    if (mermaidBlocks.length > 0) {
+      mermaidBlocks.forEach(function(el) {
+        const parent = el.tagName === 'CODE' ? el.parentElement : el;
+        const container = document.createElement('div');
+        container.className = 'mermaid';
+        container.textContent = el.textContent;
+        parent.replaceWith(container);
+      });
+      mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+    }
+  });
+</script>

@@ -36,8 +36,8 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
 
   /* Layout */
-  --max-width:     1060px;
-  --content-width: 680px;
+  --max-width:     1360px;
+  --content-width: 960px;
 
   /* Spacing */
   --space-xs:  0.25rem;
@@ -792,28 +792,78 @@ img { max-width: 100%; display: block; }
 }
 
 /* Code blocks */
-.prose pre {
-  background: #1e1e2e;
-  border: 1px solid #2d2d3e;
+.prose .highlight, .highlight {
+  background: #181825;
+  border: 1px solid #313244;
   border-radius: var(--radius-md);
-  padding: var(--space-lg);
-  overflow-x: auto;
   margin: var(--space-lg) 0;
+  overflow-x: auto;
 }
 
-.prose pre code {
+.prose .highlight pre, .prose pre {
+  background: #181825;
+  border: 1px solid #313244;
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin: var(--space-lg) 0;
+  overflow-x: auto;
+  line-height: 1.65;
+  color: #cdd6f4;
+}
+
+.prose .highlight pre {
+  margin: 0;
+  border: none;
+  background: transparent;
+}
+
+.prose pre code, .highlight code {
   background: none;
   border: none;
-  color: #cdd6f4;
   font-size: 0.875rem;
+  font-family: var(--font-mono);
   padding: 0;
   border-radius: 0;
 }
 
+/* Syntax Highlighting Tokens (One Dark Pro) */
+.highlight .k, .highlight .kd, .highlight .kn, .highlight .kr, .highlight .kc, .highlight .kp, .highlight .ow {
+  color: #c678dd !important;
+  font-weight: 600;
+}
+.highlight .s, .highlight .s1, .highlight .s2, .highlight .sb, .highlight .sc, 
+.highlight .sd, .highlight .se, .highlight .sh, .highlight .si, .highlight .sx, .highlight .sr {
+  color: #98c379 !important;
+}
+.highlight .nf, .highlight .nd, .highlight .ne {
+  color: #61afef !important;
+  font-weight: 500;
+}
+.highlight .nc, .highlight .nn, .highlight .kt, .highlight .no {
+  color: #e5c07b !important;
+  font-weight: 600;
+}
+.highlight .nb, .highlight .bp {
+  color: #56b6c2 !important;
+}
+.highlight .m, .highlight .mi, .highlight .mf, .highlight .mh, .highlight .mo, .highlight .il {
+  color: #d19a66 !important;
+}
+.highlight .nv, .highlight .vc, .highlight .vg, .highlight .vi, .highlight .na, .highlight .nt, .highlight .nx {
+  color: #e06c75 !important;
+}
+.highlight .c, .highlight .c1, .highlight .cm, .highlight .cp, .highlight .cs {
+  color: #7f848e !important;
+  font-style: italic;
+}
+.highlight .o, .highlight .p, .highlight .x, .highlight .g {
+  color: #abb2bf !important;
+}
+
 /* Highlight.js / codehilite overrides */
 .codehilite {
-  background: #1e1e2e;
-  border: 1px solid #2d2d3e;
+  background: #181825;
+  border: 1px solid #313244;
   border-radius: var(--radius-md);
   padding: var(--space-lg);
   overflow-x: auto;

@@ -40,31 +40,31 @@ OAuth 2.0 categorizes all entities into four distinct roles:
 
 The **Authorization Code Grant with PKCE** is the safest and recommended OAuth 2.0 flow for both server-side and client-side applications.
 
-```text
-[ User / Browser ]         [ Client App Backend ]       [ Authorization Server ]    [ Resource Server ]
-        │                            │                             │                         │
-        │─── 1. Click "Connect" ────>│                             │                         │
-        │                            │── 2. Redirect + PKCE/State >│                         │
-        │<── 3. Show Auth Prompt ────┼─────────────────────────────│                         │
-        │                            │                             │                         │
-        │─── 4. User Authorizes ──────────────────────────────────>│                         │
-        │                            │                             │                         │
-        │<── 5. Redirect with Code ──┼─────────────────────────────│                         │
-        │    (?code=XYZ123&state=abc)│                             │                         │
-        │                            │                             │                         │
-        │─── 6. Send Code to Backend>│                             │                         │
-        │                            │── 7. Exchange Code + ──────>│                         │
-        │                            │      PKCE Code Verifier     │                         │
-        │                            │<─ 8. Return Access & ───────│                         │
-        │                            │      Refresh Tokens         │                         │
-        │                            │                             │                         │
-        │                            │── 9. Save Encrypted Tokens ─│                         │
-        │<── 10. Connection Ready ───│                             │                         │
-        │                            │                             │                         │
-        │─── 11. Request Data ──────>│                             │                         │
-        │                            │── 12. Call API (Bearer) ─────────────────────────────>│
-        │                            │<── 13. Return Protected Resource ────────────────────│
-        │<── 14. Display Data ───────│                             │                         │
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Browser
+    participant Client as Client App Backend
+    participant Auth as Authorization Server
+    participant API as Resource Server (API)
+
+    User->>Client: Click "Connect / Login"
+    Client->>Client: Generate PKCE (Verifier & Challenge) + CSRF State
+    Client-->>User: Redirect to Authorization Endpoint
+    User->>Auth: Request Authorization
+    Auth-->>User: Show Consent & Permission Prompt
+    User->>Auth: Grant Authorization
+    Auth-->>User: Redirect with Code & State (?code=XYZ123&state=abc)
+    User->>Client: Forward Code & State to Callback Endpoint
+    Client->>Client: Validate CSRF State Token
+    Client->>Auth: Exchange Code + PKCE Verifier (POST /token)
+    Auth-->>Client: Return Access Token & Refresh Token
+    Client->>Client: Encrypt & Store Tokens (AES-256-GCM)
+    Client-->>User: Connection Successful / Dashboard Ready
+    User->>Client: Request Protected Data
+    Client->>API: Fetch API Resource (Header: Bearer Access Token)
+    API-->>Client: Return Protected Resource Data
+    Client-->>User: Render Data in App UI
 ```
 
 > [!NOTE]
