@@ -79,7 +79,17 @@ layout: default
         if (entry.isIntersecting) {
           tocLinks.forEach(l => l.classList.remove('active'));
           const active = tocList.querySelector('a[href="#' + entry.target.id + '"]');
-          if (active) active.classList.add('active');
+          if (active) {
+            active.classList.add('active');
+            const tocWidget = document.getElementById('toc-widget');
+            if (tocWidget) {
+              const activeTop = active.offsetTop;
+              const widgetHeight = tocWidget.clientHeight;
+              if (activeTop > tocWidget.scrollTop + widgetHeight - 60 || activeTop < tocWidget.scrollTop + 20) {
+                tocWidget.scrollTo({ top: Math.max(0, activeTop - 40), behavior: 'smooth' });
+              }
+            }
+          }
         }
       });
     }, { rootMargin: '-20% 0% -70% 0%' });
