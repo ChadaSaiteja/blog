@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <!-- Green Circle Background (100% transparent outside) -->
+  <circle cx="250" cy="250" r="240" fill="#117255" />
+  
+  <!-- 'tj' Logo Mark -->
+  <g fill="#e0f7ed">
+    <!-- 't' -->
+    <path d="M 175 160 H 203 V 205 H 230 V 230 H 203 V 292 C 203 312 210 322 226 322 C 235 322 243 319 250 314 V 342 C 240 347 228 350 214 350 C 182 350 175 330 175 292 V 230 H 152 V 205 H 175 Z" />
+    
+    <!-- 'j' -->
+    <!-- dot -->
+    <rect x="272" y="160" width="28" height="28" rx="3" />
+    <!-- stem & hook -->
+    <path d="M 272 205 H 300 V 298 C 300 332 284 350 248 350 C 236 350 224 346 215 340 V 312 C 223 318 234 322 245 322 C 263 322 272 312 272 292 Z" />
+  </g>
+</svg>
