@@ -159,4 +159,3 @@ The command prefix `PF` honors Philippe Flajolet.
 1. Flajolet, P., Fusy, É., Gandouet, O., & Meunier, F. (2007). *HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm*. Discrete Mathematics and Theoretical Computer Science.
 2. Heule, S., Nunkesser, M., & Hall, A. (2013). *HyperLogLog in Practice: Algorithmic Engineering of a State of The Art Cardinality Estimation Algorithm* (Google Engineering).
 3. Redis Documentation: [Probabilistic data structures - HyperLogLog](https://redis.io/docs/latest/develop/data-types/probabilistic/hyperloglogs/).
-
