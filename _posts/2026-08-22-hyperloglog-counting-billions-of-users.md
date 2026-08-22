@@ -18,216 +18,145 @@ reading_time: "8 min read"
 draft: false
 ---
 
-Imagine you are running a website like YouTube or Google Search. Every single day, hundreds of millions of people visit your platform. At the end of the day, your product team asks: **"How many unique users visited today?"**
+If you run a service at scale and want to calculate Daily Active Users (DAU) or unique page visits, the most intuitive approach is to collect user identifiers in a Hash Set or Redis Set. Sets automatically deduplicate items, making `set.size()` or `SCARD` an obvious solution.
 
-Simple question. But the answer involves some seriously clever engineering.
+However, memory scaling quickly becomes a bottleneck.
+
+If you have 1 billion unique users in a single day and store each 64-bit ID (8 bytes), raw ID storage alone requires:
+
+```text
+1,000,000,000 * 8 bytes ≈ 8 GB
+```
+
+With hash table pointer overhead, memory fragmentation, and key storage, this easily exceeds 15–20 GB of RAM for a single metric. If you want to track uniques across different dimensions (such as per-page, per-country, or per-hour), maintaining exact sets in memory becomes impractical.
 
 ---
 
-## The Obvious Approach (And Why It Breaks)
+## Why Not Bloom Filters?
 
-The first instinct is straightforward: whenever a new user visits, store their user ID somewhere. At the end of the day, count the entries. You could use a data structure like a **Hash Set** or a **Sorted Set** — both are great for this because they naturally deduplicate entries (the same user ID won't be counted twice).
+A common follow-up thought is using a **Bloom Filter**. While Bloom Filters are space-efficient probabilistic data structures, they are designed for set membership checks: *"Is user X in this set?"*
 
-This works perfectly… until it doesn't.
-
-Let's say you have **1 billion unique users**. If each user ID is a 64-bit integer (8 bytes), you need:
-
-```
-1,000,000,000 users × 8 bytes = ~8 GB of memory
-```
-
-Just to count unique visitors. Every day. And that's before you factor in metadata, indexes, or any other overhead. For a company with billions of users across dozens of products, this becomes completely unmanageable.
+They do not maintain a cardinality count. To estimate set size from a Bloom Filter, you have to compute it indirectly from bit density, which degrades in accuracy as the filter fills up and still requires substantial memory (often megabytes to gigabytes for billion-scale sets).
 
 ---
 
-## What About a Bloom Filter?
+## The HyperLogLog Approach
 
-You might have heard of **Bloom Filters** — another probabilistic data structure that trades accuracy for memory efficiency. A Bloom Filter can tell you with high confidence whether an element is *probably* in the set or *definitely not* in the set.
+**HyperLogLog (HLL)** is a probabilistic cardinality estimation algorithm introduced by Philippe Flajolet et al. in 2007. Instead of storing actual element values, it tracks statistical properties of hashed inputs to estimate cardinality with a standard error of roughly **0.81%**, using a constant **12 KB of memory** regardless of whether you process 10,000 or 10 billion items.
 
-But here's the catch: a Bloom Filter is great for answering **"Have I seen this user before?"** — it cannot directly tell you **"How many unique users have I seen?"**. You still need to maintain a counter alongside it. And at massive scale, Bloom Filters still consume significant memory.
-
-There had to be a better way.
+Because it is probabilistic, it is not suitable for financial transactions or billing systems where exact counts are mandatory. But for metrics, telemetry, and analytics, an error margin under 1% is usually an acceptable engineering trade-off for orders-of-magnitude memory savings.
 
 ---
 
-## Enter HyperLogLog
+## Core Mechanism
 
-**HyperLogLog** (HLL) is a probabilistic algorithm designed specifically to solve the **cardinality estimation** problem — i.e., counting unique elements in a large dataset. It was introduced by Philippe Flajolet and colleagues in 2007.
+The algorithm relies on the uniform distribution of hash outputs and the probability of consecutive leading zeros.
 
-The key idea: instead of storing every user ID, HyperLogLog only stores a **tiny summary** of what it has seen, and uses probability to estimate the count.
+### 1. Uniform Hashing
+When an element (such as a user ID string or UUID) is added, it is passed through a 64-bit hash function (like MurmurHash64 or xxHash). The output is a uniformly distributed 64-bit binary sequence where each bit has an independent 50% probability of being `0` or `1`.
 
-> **The trade-off:** HyperLogLog gives you an *approximate* answer, not an exact one. The error rate is typically around **±0.81%**. If you absolutely need the exact count (for billing, legal, or compliance reasons), HyperLogLog is not for you. But for analytics — daily active users, unique page views, unique search queries — this margin is completely acceptable.
+```text
+Input: "user_98412" -> 00000101011010101101010101110101...
+```
 
-Redis's HyperLogLog uses a fixed **12 KB of memory**, regardless of whether you are counting 1,000 or 1 billion unique users.
+### 2. Observing Leading Zeros
+In a random stream of binary numbers:
+- Probability of starting with `0`: 1/2 ($2^{-1}$)
+- Probability of starting with `00`: 1/4 ($2^{-2}$)
+- Probability of starting with `00000` (5 zeros): 1/32 ($2^{-5}$)
+- Probability of $k$ leading zeros: $1/2^k$
+
+If you observe an output with $k$ leading zeros before the first `1`, it implies that statistically around $2^k$ items have been processed.
+
+### 3. Splitting into Registers (Bucketing)
+Relying on a single maximum count of leading zeros has high variance. A single outlier hash starting with 25 zeros would immediately skew the estimate to 33 million.
+
+To reduce variance, HyperLogLog partitions the dataset across $m = 2^p$ registers:
+- The first $p$ bits of the 64-bit hash select the register index.
+- The remaining $64 - p$ bits are evaluated for the count of leading zeros plus one ($\rho$).
+- The target register only updates if the new leading zero count is greater than its current value.
+
+For example, with $p = 4$ ($2^4 = 16$ registers):
+
+```text
+Hash: [ 0000 ] [ 0101010101010101... ]
+        |              |
+     First 4 bits   Remaining 60 bits
+     Register 0     Starts with "01" -> 1 leading zero
+```
+
+Register `0` records $\max(\text{existing}, 1 + 1)$.
+
+### 4. Harmonic Mean & Bias Correction
+To calculate the overall estimate from all registers $M[0 \dots m-1]$, HyperLogLog computes the harmonic mean across the register values:
+
+$$E = \alpha_m \cdot m^2 \cdot \left( \sum_{j=1}^{m} 2^{-M[j]} \right)^{-1}$$
+
+The harmonic mean heavily dampens the impact of extreme outliers compared to an arithmetic mean. The constant $\alpha_m$ provides bias correction for register sizing.
 
 ---
 
-## How Does It Actually Work?
+## Memory Comparison
 
-Let me walk you through the intuition step by step.
+| Structure | Storage Method | Memory for 1B Items | Precision |
+|---|---|---|---|
+| Hash Set | Stores raw IDs | ~8–16 GB | Exact (100%) |
+| Bloom Filter | Bit array (membership) | ~1.2 GB (at 1% FPR) | Approximate membership only |
+| HyperLogLog | 16,384 6-bit registers | ~12 KB | Approximate (~0.81% error) |
 
-### Step 1: The Coin Flip Intuition
+Redis uses $p = 14$, allocating $2^{14} = 16,384$ registers. Since the maximum leading zero count in a 64-bit hash fits in 6 bits ($2^6 = 64$), each register is 6 bits wide:
 
-Imagine you are flipping a fair coin repeatedly and noting how long your streak of heads is before you get a tail. If I tell you the longest streak you observed was **3 heads in a row**, you probably didn't flip the coin that many times. But if I tell you the longest streak was **20 heads in a row**, you almost certainly flipped it millions of times — because the probability of getting 20 heads in a row is 1 in 2²⁰ (about 1 in a million).
-
-This is the core intuition behind HyperLogLog.
-
-### Step 2: Hashing Everything
-
-When a user ID comes in, HyperLogLog first passes it through a **hash function** (like MurmurHash or xxHash). This is critical because:
-
-- Hash functions produce uniformly distributed output
-- Every input maps to a random-looking 64-bit binary string
-- This turns any kind of user ID (strings, integers, UUIDs) into a series of random bits
-
-For example, a user ID `"user_12345"` might hash to:
-
-```
-0000010101101010110101010111010101010101010101010101010101010101
-```
-
-### Step 3: Counting Leading Zeros
-
-Now, look at the hash value. Count how many **leading zeros** appear before the first `1`.
-
-In the example above: `00000` → 5 leading zeros.
-
-Here is the probabilistic magic:
-
-- The probability of getting **1 leading zero** is 1/2
-- The probability of getting **2 leading zeros** is 1/4
-- The probability of getting **n leading zeros** is 1/2ⁿ
-
-So if the maximum number of leading zeros you've ever seen across all hashed user IDs is **n**, then statistically you've probably seen around **2ⁿ** unique users.
-
-### Step 4: Registers (Dividing to Reduce Error)
-
-There's a problem with just tracking one maximum value — a single outlier (one unlucky hash with 30 leading zeros) would completely blow up your estimate.
-
-The solution is to **split the work into many independent sub-experiments** called **registers** (or buckets). This is controlled by a parameter **p**:
-
-- The **first p bits** of the hash value determine *which register* this element belongs to
-- The **remaining bits** are used to count the leading zeros, stored in that register
-
-If `p = 4`, you get `2⁴ = 16` registers. Each register independently tracks the maximum leading zeros it has seen.
-
-**Example with p = 4:**
-
-```
-Hash: 0000 | 010101010101010101010101010101010101010101010101010101010101
-       ↑              ↑
-  first 4 bits    remaining 60 bits → count leading zeros here
-  = "0000"        starts with "0" → 1 leading zero
-  → register index 0
-```
-
-Each register stores a small number — just the maximum leading zeros seen so far for its slice of the data.
-
-### Step 5: Combining with the Harmonic Mean
-
-Once all user IDs are processed, you combine all the register values using the **harmonic mean** (not a simple average — the harmonic mean reduces the impact of outliers), apply a correction factor **αₘ**, and get your final estimate:
-
-```
-Estimated Cardinality = αₘ × m² × HarmonicMean(2^(-register[i]))
-```
-
-Where `m` is the number of registers. The correction factor `αₘ` compensates for known biases in the estimation at very low or very high counts.
+$$16,384 \times 6 \text{ bits} = 98,304 \text{ bits} = 12 \text{ KB}$$
 
 ---
 
-## Memory: The Real Win
+## Redis Implementation
 
-Here's the numbers that make HyperLogLog remarkable:
-
-| Approach | 1 Billion Users | Memory Used |
-|---|---|---|
-| Hash Set (exact) | 1,000,000,000 IDs stored | ~8 GB |
-| Bloom Filter | Bit array for 1B items | ~1.2 GB (with 1% error) |
-| **HyperLogLog** | **16K registers, each a few bits** | **~12 KB** |
-
-Redis specifically uses `p = 14`, which gives `2¹⁴ = 16,384` registers. Each register stores at most 6 bits. Total: `16,384 × 6 bits ≈ 12 KB`.
-
-That is a **~700,000x reduction** in memory compared to storing every ID — with only a 0.81% error rate.
-
----
-
-## How Redis Exposes This
-
-Redis makes HyperLogLog a first-class citizen with three commands:
+Redis provides native support for HyperLogLog using three primary commands:
 
 ```bash
-# Add elements to the HyperLogLog
-PFADD daily_visitors:2026-08-22 user_001 user_002 user_003
+# Add elements
+PFADD unique_visitors:2026-08-22 "user_101" "user_102" "user_103"
 
-# Get the estimated unique count
-PFCOUNT daily_visitors:2026-08-22
-# → (integer) 3
+# Retrieve estimated cardinality
+PFCOUNT unique_visitors:2026-08-22
+# Output: 3
 
-# Merge multiple HLLs (e.g., get monthly uniques from daily HLLs)
-PFMERGE monthly_visitors:2026-08 daily_visitors:2026-08-01 daily_visitors:2026-08-02
+# Merge multiple HyperLogLogs without recounting raw records
+PFMERGE monthly_visitors:2026-08 unique_visitors:2026-08-01 unique_visitors:2026-08-02
 PFCOUNT monthly_visitors:2026-08
 ```
 
-The `PF` prefix is a tribute to **Philippe Flajolet**, the algorithm's inventor.
+The command prefix `PF` honors Philippe Flajolet.
 
 ---
 
-## A Quick Comparison
+## Trade-offs and Practical Suitability
 
-| Feature | Hash Set | Bloom Filter | HyperLogLog |
-|---|---|---|---|
-| **Memory** | O(n) — grows with data | O(n) — large but fixed | O(1) — always ~12 KB |
-| **Exact count?** | ✅ Yes | ❌ No | ❌ No (~0.81% error) |
-| **Can list elements?** | ✅ Yes | ❌ No | ❌ No |
-| **Membership check?** | ✅ Yes | ✅ Yes (probabilistic) | ❌ No |
-| **Cardinality estimation** | ✅ Exact | ❌ Indirect | ✅ Approximate |
-| **Best for** | Small-medium exact data | "Have I seen this?" | Counting unique at scale |
+### When to Use HyperLogLog
+- High-volume cardinality estimation (DAU, MAU, unique IP monitoring, search query frequency).
+- Systems where storing identifiers in memory is cost-prohibitive.
+- Distributed data pipelines where pre-aggregating and merging sketches (`PFMERGE`) avoids shuffling raw IDs over the network.
 
----
-
-## When to Use HyperLogLog (and When Not To)
-
-### ✅ Use HyperLogLog when:
-- You need to count **unique users, events, searches, or IPs** at scale
-- An approximate answer with **~1% error** is acceptable
-- Memory is a constraint and your dataset is massive
-- You are building analytics dashboards, monitoring systems, or real-time metrics
-
-### ❌ Avoid HyperLogLog when:
-- You need the **exact** count — for billing, compliance, or financial transactions
-- You need to **retrieve or iterate** over the actual unique elements
-- Your dataset is small — a plain Redis Set is fine for a few thousand items
-- You need to check **membership** (whether a specific user is in the set)
+### When Not to Use HyperLogLog
+- Auditing, financial ledgers, or invoice billing requiring exact counts.
+- Workflows that need to retrieve, inspect, or iterate over the actual elements.
+- Membership verification (use a Bloom Filter or Cuckoo Filter instead).
+- Datasets with very low cardinality where standard sets fit easily in memory without approximation.
 
 ---
 
-## Real-World Usage
+## Real-World Systems
 
-- **Google** uses variants of HyperLogLog internally for counting unique search queries and unique users per product. BigQuery's `APPROX_COUNT_DISTINCT` function is backed by HLL under the hood.
-- **Redis** ships HyperLogLog as a built-in data type, widely used by companies for real-time unique counting in analytics pipelines.
-- **Apache Spark, Presto, and Flink** all support HLL-based approximate distinct counts for large-scale data processing.
-- **Cloudflare** uses HyperLogLog for estimating unique IP addresses in network traffic analysis.
-
----
-
-## The Bottom Line
-
-HyperLogLog is one of those algorithms where the cleverness is almost poetic. By exploiting the statistics of random bit patterns — something as simple as counting leading zeros — it can tell you "you probably have 1 billion unique users" using less memory than a single high-resolution image.
-
-The key things to remember:
-
-1. **It gives an approximation**, not an exact answer (~0.81% error with Redis's default settings)
-2. **Memory is constant** — 12 KB whether you have 1 user or 1 billion
-3. **You cannot retrieve the items** — only get the estimated count
-4. **Use it for analytics** where "approximately 5 million unique users" is a perfectly useful answer
-5. **Avoid it for billing or compliance** where you need the exact number
-
-The next time you see "5.2M unique visitors this month" on an analytics dashboard, there's a good chance HyperLogLog is doing the counting behind the scenes.
+- **Google BigQuery:** Exposes HyperLogLog through `APPROX_COUNT_DISTINCT()`, drastically reducing query latency and memory consumption over massive datasets compared to `COUNT(DISTINCT)`.
+- **Redis:** Used as a lightweight analytics cache layer for real-time dashboards.
+- **Apache Spark / Trino / Presto:** Use HLL sketches for distributed distinct counting across petabyte-scale tables.
+- **Cloudflare:** Applies HyperLogLog sketches for real-time edge DDoS tracking and unique visitor analytics.
 
 ---
 
 ## References
-1. [HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm](http://algo.inria.fr/flajolet/Publications/FlFuGaMe07.pdf) — Philippe Flajolet et al. (2007)
-2. [Redis HyperLogLog documentation](https://redis.io/docs/data-types/probabilistic/hyperloglogs/)
-3. [HyperLogLog in Practice — Google Engineering](https://research.google/pubs/hyperloglog-in-practice-algorithmic-engineering-of-a-state-of-the-art-cardinality-estimation-algorithm/)
-4. [Wikipedia: HyperLogLog](https://en.wikipedia.org/wiki/HyperLogLog)
+1. Flajolet, P., Fusy, É., Gandouet, O., & Meunier, F. (2007). *HyperLogLog: the analysis of a near-optimal cardinality estimation algorithm*. Discrete Mathematics and Theoretical Computer Science.
+2. Heule, S., Nunkesser, M., & Hall, A. (2013). *HyperLogLog in Practice: Algorithmic Engineering of a State of The Art Cardinality Estimation Algorithm* (Google Engineering).
+3. Redis Documentation: [Probabilistic data structures - HyperLogLog](https://redis.io/docs/latest/develop/data-types/probabilistic/hyperloglogs/).
+
