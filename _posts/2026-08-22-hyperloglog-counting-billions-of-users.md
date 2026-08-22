@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "HyperLogLog: How Google and Redis Count Billions of Unique Users Using Just 12 KB"
+title: "HyperLogLog: How Google and Reddit Count Billions of Unique Users Using Just 12 KB"
 description: "A simple, intuitive explanation of the HyperLogLog algorithm — how it works, why it is used over sets and bloom filters, and when you should (and shouldn't) use it."
 date: 2026-08-22
 categories:
