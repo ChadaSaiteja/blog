@@ -2,7 +2,7 @@
 layout: post
 title: "The Google File System: How Google Stores Petabytes on Cheap, Unreliable Machines"
 description: "A beginner-friendly walkthrough of the Google File System (GFS) — how chunking, replication, and heartbeats let thousands of ordinary machines behave like one giant, fault-tolerant hard drive."
-date: 2026-09-13
+date: 2026-09-10
 categories:
   - DistributedSystems
   - Backend
@@ -110,16 +110,21 @@ This self-healing loop is what makes GFS resilient — no human has to notice a 
 
 The master is a single machine holding critical metadata: the file namespace, the file-to-chunk mapping, and (via heartbeats) the chunk locations. If it's a single point of failure, the whole design falls apart.
 
-GFS addresses this by having the **primary master** continuously stream its state to a **backup (shadow) master**, which stays up to date with almost all the latest metadata. Both are monitored with heartbeats as well:
+GFS doesn't keep a live "hot backup" that can instantly take over writes. Instead, it protects the master's metadata in two ways:
+
+- **Operation log replication**: every metadata change (creating a file, adding a chunk, etc.) is written to an operation log, which is flushed and replicated onto several remote machines *before* the change is considered committed. The master also periodically writes a checkpoint so recovery doesn't require replaying the entire log.
+- **External monitoring restarts the master**: if the primary master crashes, monitoring infrastructure outside GFS itself detects the failure and starts a brand-new master process on one of the machines holding the replicated log. Clients find the master through a canonical DNS name, so once that name points at the new process, failover is transparent to them.
 
 ```mermaid
 flowchart LR
-    User[User Request] --> Check{Primary master<br/>heartbeat OK?}
-    Check -- Yes --> Primary[Use Primary Master]
-    Check -- No --> Backup[Redirect to Backup Master]
+    Primary["Primary Master"] -- "replicates log + checkpoints" --> Remote1["Replicated log copy 1"]
+    Primary -- "replicates log + checkpoints" --> Remote2["Replicated log copy 2"]
+    Monitor{{"External monitoring"}} -- "detects crash, restarts master" --> NewMaster["New Master Process"]
+    Remote1 -.-> NewMaster
+    Remote2 -.-> NewMaster
 ```
 
-If the primary stops responding, requests are redirected to the backup, which can take over using its near-current copy of the metadata — minimizing downtime for a system that may be coordinating access to hundreds of terabytes of data.
+GFS also runs read-only **shadow masters**. They apply the replicated operation log a little behind the primary, so they can keep serving *metadata reads* (like directory listings or slightly stale file lookups) even while the primary is down or being restarted — they just can't serve writes.
 
 ---
 
@@ -140,9 +145,9 @@ This is the detail that surprises most people coming from regular file systems. 
 | Unit of storage | Block (e.g., 4 KB) | Chunk (64 MB) |
 | Stored on | One disk | Thousands of chunkservers |
 | Failure handling | None (single disk) | Replication (RF, typically 3) |
-| Metadata owner | OS file index | Single master (+ backup) |
+| Metadata owner | OS file index | Single master (operation log replicated to multiple machines) |
 | Failure detection | N/A | Heartbeats between chunkservers and master |
-| Master failure | N/A | Backup master takes over |
+| Master failure | N/A | New master process replays the replicated log; shadow masters serve reads meanwhile |
 
 ---
 
@@ -159,7 +164,7 @@ GFS proved that you don't need expensive, reliable hardware to build a reliable 
 1. **Split large files into big chunks** (64 MB) instead of tiny blocks, to keep metadata small and reads efficient.
 2. **Replicate every chunk** across multiple chunkservers so no single failure loses data.
 3. **Use heartbeats** to continuously detect dead servers and automatically re-replicate chunks to maintain the target replication factor.
-4. **Keep a backup master** in sync with the primary, so metadata — the map to everything — survives even if the master goes down.
+4. **Replicate the master's operation log** to multiple machines, so metadata — the map to everything — survives even if the master process goes down, with read-only shadow masters riding out the outage.
 
 The next time you hear "we store petabytes of data across thousands of commodity servers," this heartbeat-driven, self-healing chunk architecture is very likely doing the heavy lifting behind the scenes.
 
