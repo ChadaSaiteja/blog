@@ -73,7 +73,7 @@ Since there are now thousands of chunkservers instead of one disk, a failure is 
 If each chunk only existed on one chunkserver, losing that machine would mean losing that piece of data forever. GFS solves this with **replication**: every chunk is copied to multiple chunkservers, typically **3** (the "replication factor" or RF).
 
 ```mermaid
-graph TR
+graph LR
     Chunk["Chunk A"]
     Chunk --> S1["Chunkserver 1<br/>(replica)"]
     Chunk --> S2["Chunkserver 2<br/>(replica)"]
@@ -118,11 +118,11 @@ GFS doesn't keep a live "hot backup" that can instantly take over writes. Instea
 
 ```mermaid
 flowchart LR
-    Primary["Primary Master"] -- "replicates log + checkpoints" --> Remote1["Replicated log copy 1"]
-    Primary -- "replicates log + checkpoints" --> Remote2["Replicated log copy 2"]
-    Monitor{{"External monitoring"}} -- "detects crash, restarts master" --> NewMaster["New Master Process"]
-    Remote1 -.-> NewMaster
-    Remote2 -.-> NewMaster
+    Primary["Primary Master"] --> Remote1["Replicated log copy 1"]
+    Primary --> Remote2["Replicated log copy 2"]
+    Monitor["External Monitoring"] --> NewMaster["New Master Process"]
+    Remote1 --> NewMaster
+    Remote2 --> NewMaster
 ```
 
 GFS also runs read-only **shadow masters**. They apply the replicated operation log a little behind the primary, so they can keep serving *metadata reads* (like directory listings or slightly stale file lookups) even while the primary is down or being restarted — they just can't serve writes.
