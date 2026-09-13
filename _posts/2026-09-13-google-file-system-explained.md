@@ -73,7 +73,7 @@ Since there are now thousands of chunkservers instead of one disk, a failure is 
 If each chunk only existed on one chunkserver, losing that machine would mean losing that piece of data forever. GFS solves this with **replication**: every chunk is copied to multiple chunkservers, typically **3** (the "replication factor" or RF).
 
 ```mermaid
-graph LR
+graph TR
     Chunk["Chunk A"]
     Chunk --> S1["Chunkserver 1<br/>(replica)"]
     Chunk --> S2["Chunkserver 2<br/>(replica)"]
@@ -95,10 +95,11 @@ If a chunkserver misses its heartbeats, the master assumes it's dead. It then ch
 sequenceDiagram
     participant CS as Chunkserver
     participant M as Master
+    participant CS2 as New Chunkserver
     CS->>M: Heartbeat (I'm alive, here are my chunks)
     M->>M: Update chunk mapping table
     Note over M: If a chunkserver stops sending heartbeats...
-    M->>M: Replica count < RF, pick a new chunkserver
+    M->>M: Replica count falls below RF, pick a new chunkserver
     M->>CS2: Instruct: copy chunk here
 ```
 
