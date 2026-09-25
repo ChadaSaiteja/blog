@@ -317,10 +317,4 @@ The strongest architecture is often not one model for everything. It is a small 
 
 1. [TypeSafe AI: Introducing System One Models & Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)
 2. [TypeSafe Documentation: System One](https://docs.typesafe.ai/concepts/system-one)
-3. [TypeSafe Documentation: Quick start](https://docs.typesafe.ai/introduction/quickstart)
-4. [TypeSafe Documentation: Primitives](https://docs.typesafe.ai/primitives)
-5. [TypeSafe Documentation: Confidence](https://docs.typesafe.ai/confidence)
-6. [TypeSafe Documentation: Patterns](https://docs.typesafe.ai/patterns)
-7. [LangChain: Building a Harness with Jev](https://www.langchain.com/blog/building-a-harness-with-jev)
-8. [Laya Myadam: System Design — Framework](https://medium.com/@layamyadam8/part-3-system-design-framework-18d100a7c16e)
-9. [Laya Myadam: System Design — From Dosa Carts to ChatGPT](https://medium.com/@layamyadam8/part-1-system-design-from-dosa-carts-to-chatgpt-why-systems-fail-and-how-to-build-ones-that-1e22abf65e98)
+3. [Laya Myadam: System Design — Framework](https://medium.com/@layamyadam8/part-3-system-design-framework-18d100a7c16e)
