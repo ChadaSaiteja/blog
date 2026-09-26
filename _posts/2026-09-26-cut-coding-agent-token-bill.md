@@ -675,34 +675,16 @@ __pycache__/
 
 **Graphify**
 - [graphify.com/docs](https://graphify.com/docs) — canonical quickstart
-- [github.com/Graphify-Labs/graphify](https://github.com/Graphify-Labs/graphify) — source
-- [pypi.org/project/graphifyy](https://pypi.org/project/graphifyy/) — the double-`y` package
-- [BENCHMARKS.md](https://github.com/Graphify-Labs/graphify/blob/v8/BENCHMARKS.md) — LOCOMO, LongMemEval, ERPNext code suite
 - [Graphify field report: 7.3× on a real codebase](https://exchangepedia.com/articles/graphify-honest-benchmark-real-codebase.html)
 
 **Ponytail**
 - [github.com/DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail) — source, MIT
 - [ponytail.dev](https://ponytail.dev/)
-- [Agentic benchmark writeup](https://github.com/DietrichGebert/ponytail/blob/main/benchmarks/results/2026-06-18-agentic.md)
-- [Issue #126 — the baseline critique that forced a rebuilt benchmark](https://github.com/DietrichGebert/ponytail/issues/126)
 
 **Caveman**
 - [github.com/JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) — source
-- [docs/HONEST-NUMBERS.md](https://github.com/JuliusBrussee/caveman/blob/main/docs/HONEST-NUMBERS.md)
-- [docs/WRAP-BENCHMARK.md](https://github.com/JuliusBrussee/caveman/blob/main/docs/WRAP-BENCHMARK.md)
-- [@caveman-ai/cli on npm](https://www.npmjs.com/package/@caveman-ai/cli)
-
-**Independent measurements**
-- [JetBrains: Does Speaking to AI Agents like Cavemen Save 65% of Tokens? We Test](https://blog.jetbrains.com/ai/2026/07/speak-to-ai-agents-like-cavemen-tosave-tokens/) — advertised −65%, measured −8.5%
-- [JetBrains: Does the "rtk" skill really cut agent tokens by 60–90%?](https://blog.jetbrains.com/ai/2026/07/rtk-claude-code-token-savings/) — advertised −60–90%, measured +7.6%
-- [JetBrains: Ponytail Skill for Claude Code — Does It Really Cut Agent Code by 54%?](https://blog.jetbrains.com/ai/2026/07/ponytail-skill-claude-tested/) — advertised −54%, measured −15.4% code / −10.3% cost
-- [InfoWorld coverage of the Caveman result](https://www.infoworld.com/article/4193775/talk-like-a-caveman-prompts-save-tokens-but-far-less-than-promised.html)
-- [The New Stack: Caveman mode token savings](https://thenewstack.io/caveman-mode-token-savings/)
 
 **Research**
 - [CAVEWOMAN: How Large Language Models Behave Under Linguistic Input and Output Compression (arXiv:2606.24083)](https://arxiv.org/abs/2606.24083) — Adobe Research; output compression 1.4–2.4× cheaper, input compression ~1.15× *more* expensive
 - [Brevity Constraints Reverse Performance Hierarchies in Language Models (arXiv:2604.00025)](https://arxiv.org/abs/2604.00025) — brevity constraints, +26.3pp accuracy on large models
 
-**Agent harness used in the independent benchmarks**
-- [SkillsBench (benchflow-ai/skillsbench)](https://github.com/benchflow-ai/skillsbench)
-- [Anthropic Claude Code](https://github.com/anthropics/claude-code)
