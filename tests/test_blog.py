@@ -535,10 +535,19 @@ draft: false
         self.assertEqual(unsupported_default, [], "default.html uses something the renderer cannot do")
         self.assertNotRegex(final_html, r"\{%|\{\{")
 
-        for expected in ('id="reading-progress-bar"', 'class="cover-tile',
-                         'id="toc-list"', 'class="toc-mobile"', 'class="author-card"',
-                         'data-share', "--accent:"):
+        for expected in ('id="reading-progress-bar"', 'id="toc-list"',
+                         'class="toc-mobile"', 'class="author-card"',
+                         'data-share', "--accent:", "--header-height:"):
             self.assertIn(expected, final_html, "post page is missing {}".format(expected))
+
+        # Covers are switched off in the config for now, so the tile must be
+        # absent. Flipping images.cover.enabled back to true must bring it back.
+        covers_enabled = config["images"]["cover"]["enabled"]
+        if covers_enabled:
+            self.assertIn('class="cover-tile', final_html)
+        else:
+            self.assertNotIn('class="cover-tile', final_html)
+            self.assertNotIn("post-hero", final_html)
 
     # ------------------------------------------------------------------
     # validate_style.py
