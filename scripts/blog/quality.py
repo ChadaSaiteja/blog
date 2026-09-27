@@ -280,11 +280,8 @@ class BlogQualityAnalyzer:
         max_paragraph = self.rules.get("max_paragraph_words", 150)
 
         long_paragraphs = 0
-        for paragraph in self.content.split("\n\n"):
-            text = paragraph.strip()
-            if not text or text.startswith("```") or text.startswith(">"):
-                continue
-            if len(text.split()) > max_paragraph:
+        for paragraph in self._prose_blocks():
+            if len(paragraph.split()) > max_paragraph:
                 long_paragraphs += 1
 
         if long_paragraphs:
@@ -301,6 +298,26 @@ class BlogQualityAnalyzer:
                 "Readability: Frequent use of passive writing detected. Prefer active "
                 "voice where possible.",
             )
+
+    def _prose_blocks(self):
+        """Blank-line separated blocks that are actually prose.
+
+        Fenced code, blockquotes and GFM tables are excluded. A table's rows are
+        separated by single newlines, so the whole table arrives here as one
+        block and a table with a few long cells reads as a 400-word paragraph.
+        That is the same false positive as counting `# comment` lines inside a
+        fence as body headings.
+        """
+        blocks = []
+        for block in self.content.split("\n\n"):
+            lines = block.split("\n")
+            if not lines or lines[0].strip().startswith("```"):
+                continue
+            if all(line.lstrip().startswith(("|", ">")) or not line.strip()
+                   for line in lines):
+                continue
+            blocks.append(block.strip())
+        return blocks
 
     # -- examples -------------------------------------------------------
     def _score_examples(self):

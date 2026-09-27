@@ -77,6 +77,9 @@ tokens:
     content_column: "4.8fr"
     gutter_column: "2fr"
     sidebar_min_width: "1024px"
+    # Sticky header height. .toc-widget sticks this far down and heading
+    # anchors scroll to here, so all three stay in step.
+    header_height: "76px"
 
   space:
     xs: "0.25rem"
@@ -103,11 +106,15 @@ tokens:
 # 16:9 tile and old and new posts look the same with zero backfill.
 images:
   cover:
-    enabled: true
+    # Off for now: no images on the site. Flip this to true and every post gets
+    # a deterministic 16:9 cover on its page and on its listing card, with no
+    # image files to commit. The CSS and _includes/cover-tile.html are kept
+    # wired up for exactly that.
+    enabled: false
     aspect_ratio: "16 / 9"
     variants: 6
-    # Seeded from the post slug by assets/js/main.js. CSS-only fallback is
-    # variant 0, so the tile still renders correctly with JS disabled.
+    # Seeded from the post slug. CSS-only fallback is variant 0, so the tile
+    # still renders correctly with JS disabled.
     seed_from: slug
     default_variant: 0
     # Shown on the post page above the title. Set false for a text-only post.
@@ -258,8 +265,7 @@ author_profile:
   initials: "SC"
   links:
     github: "https://github.com/chadasaiteja"
-    linkedin: "https://www.linkedin.com/in/saiteja-chada/"
-    x: "https://x.com/"
+    linkedin: "https://www.linkedin.com/in/chada-saiteja/"
 
 # -----------------------------------------------------------------------------
 # NAVIGATION
