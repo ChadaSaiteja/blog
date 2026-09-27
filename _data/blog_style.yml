@@ -1,0 +1,273 @@
+# =============================================================================
+# BLOG STYLE — single source of truth
+# =============================================================================
+# Every consumer reads this file. Nothing about a post's appearance or shape
+# is defined anywhere else.
+#
+#   tokens      -> _includes/tokens.html  -> emitted as :root CSS overrides
+#   images      -> _includes/cover-tile.html + main.css component rules
+#   structure   -> scripts/blog/new_post.py (scaffolding) + quality.py (checks)
+#   rubric      -> scripts/blog/quality.py (weights + gate)
+#   frontmatter -> scripts/blog/new_post.py (key order + defaults)
+#
+# The values in `tokens` intentionally duplicate assets/css/main.css:9-55.
+# That copy is a FALLBACK: _includes/tokens.html is rendered after main.css,
+# so this file wins. If this file is ever removed the site still renders,
+# just with the old hardcoded palette.
+# =============================================================================
+
+version: 1
+
+# -----------------------------------------------------------------------------
+# TOKENS
+# -----------------------------------------------------------------------------
+tokens:
+  color:
+    bg: "#fafaf8"
+    bg_subtle: "#f4f3f0"
+    bg_code: "#f0efe9"
+    surface: "#ffffff"
+    border: "#e5e3de"
+    border_light: "#efede8"
+    text: "#1a1916"
+    text_secondary: "#6b6860"
+    text_muted: "#9e9b95"
+    accent: "#2563eb"
+    accent_hover: "#1d4ed8"
+    tag_bg: "#eff6ff"
+    tag_text: "#2563eb"
+    tag_border: "#dbeafe"
+    cat_bg: "#f0fdf4"
+    cat_text: "#15803d"
+    cat_border: "#bbf7d0"
+    selection: "#dbeafe"
+
+    # Code block surface — the one dark element on the page.
+    code_bg: "#181825"
+    code_border: "#313244"
+    code_head_bg: "#1e1e2e"
+    code_fg: "#cdd6f4"
+    code_comment: "#7f848e"
+
+    # Callout tints. Each is (border, background, text).
+    callout_note_border: "#2563eb"
+    callout_note_bg: "#eff6ff"
+    callout_note_text: "#1e40af"
+    callout_tip_border: "#15803d"
+    callout_tip_bg: "#f0fdf4"
+    callout_tip_text: "#166534"
+    callout_warning_border: "#b45309"
+    callout_warning_bg: "#fffbeb"
+    callout_warning_text: "#92400e"
+    callout_important_border: "#7c3aed"
+    callout_important_bg: "#f5f3ff"
+    callout_important_text: "#5b21b6"
+    callout_caution_border: "#dc2626"
+    callout_caution_bg: "#fef2f2"
+    callout_caution_text: "#991b1b"
+
+  font:
+    sans: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    mono: "'JetBrains Mono', 'Fira Code', Consolas, monospace"
+
+  layout:
+    max_width: "1344px"
+    content_width: "800px"
+    sidebar_width: "2fr"
+    content_column: "4.8fr"
+    gutter_column: "2fr"
+    sidebar_min_width: "1024px"
+
+  space:
+    xs: "0.25rem"
+    sm: "0.5rem"
+    md: "1rem"
+    lg: "1.5rem"
+    xl: "2.5rem"
+    "2xl": "4rem"
+
+  # Emitted as --radius, --radius-sm, --radius-md, --radius-lg
+  radius:
+    base: "4px"
+    sm: "4px"
+    md: "6px"
+    lg: "10px"
+
+  transition: "0.15s ease"
+
+# -----------------------------------------------------------------------------
+# IMAGES — the cover / figure style
+# -----------------------------------------------------------------------------
+# No image files are committed. Covers are generated deterministically from the
+# post slug + its primary category, so every post gets an identical-looking
+# 16:9 tile and old and new posts look the same with zero backfill.
+images:
+  cover:
+    enabled: true
+    aspect_ratio: "16 / 9"
+    variants: 6
+    # Seeded from the post slug by assets/js/main.js. CSS-only fallback is
+    # variant 0, so the tile still renders correctly with JS disabled.
+    seed_from: slug
+    default_variant: 0
+    # Shown on the post page above the title. Set false for a text-only post.
+    show_on_post: true
+    # Shown at the top of every listing card.
+    show_on_card: true
+
+  # Per-category accent used as the cover gradient base. Add a key per
+  # category_enum entry below; `default` catches anything unmapped.
+  category_accent:
+    default: "#2563eb"
+    AI: "#7c3aed"
+    Backend: "#2563eb"
+    SystemDesign: "#0f766e"
+    DistributedSystems: "#b45309"
+    DataStructures: "#be185d"
+    Security: "#dc2626"
+    DevTools: "#65a30d"
+    WebDev: "#0891b2"
+    Go: "#4d7c0f"
+    Concurrency: "#c026d3"
+
+  # Inline figures inside .prose. Style is enforced in CSS, not per post.
+  figure:
+    radius: "10px"
+    border: "1px solid #efede8"
+    max_width: "100%"
+
+  # Mermaid is the in-body diagram language. No SVG diagram files.
+  diagrams:
+    engine: mermaid
+    min_width: "550px"
+    surface: "bg_subtle"
+    rules:
+      - "Use `flowchart TD` / `flowchart LR` for flow, `sequenceDiagram` for interactions."
+      - "Quote any label containing parentheses, slashes or punctuation."
+      - "Use <br/> for line breaks inside node labels."
+      - "Fence as ```mermaid with no wrapper div."
+      - "Keep diagrams under 12 nodes or they stop fitting the 800px measure."
+
+# -----------------------------------------------------------------------------
+# STRUCTURE — the base template contract for any post
+# -----------------------------------------------------------------------------
+structure:
+  # Key order is enforced by scripts/blog/new_post.py and quality.py.
+  frontmatter_order:
+    - layout
+    - title
+    - description
+    - date
+    - updated
+    - categories
+    - tags
+    - author
+    - reading_time
+    - cover
+    - series
+    - draft
+
+  required: [title, description, date, categories]
+  optional: [updated, tags, author, reading_time, cover, series, draft]
+
+  defaults:
+    layout: post
+    author: "Saiteja Chada"
+    reading_time: "5 min read"
+    draft: false
+
+  # quality.py docks points for a category outside this list.
+  category_enum:
+    - AI
+    - Backend
+    - SystemDesign
+    - DistributedSystems
+    - DataStructures
+    - Security
+    - DevTools
+    - WebDev
+    - Go
+    - Concurrency
+
+  # Ordered skeleton new_post.py writes. All but the last two are optional
+  # section *headings* — the author decides which apply.
+  sections:
+    - id: lede
+      heading: null
+      hint: "Opening paragraph. No heading. State the problem in the first sentence."
+    - id: background
+      heading: "Background"
+      hint: "What the reader must already know to follow along."
+    - id: how
+      heading: "How It Works"
+      hint: "The main body. One idea per ### subsection."
+    - id: deep_dive
+      heading: "Deep Dive"
+      hint: "Optional. Mechanics, internals, or a worked example."
+    - id: caveats
+      heading: "Gotchas and Trade-offs"
+      hint: "Optional. Where this breaks, and what it costs."
+    - id: takeaways
+      heading: "Key Takeaways"
+      hint: "Required in practice. 3-7 bullets, each one a full sentence."
+    - id: references
+      heading: "References"
+      hint: "Required. Official docs and primary sources, not blog aggregators."
+
+  rules:
+    no_h1_in_body: true          # the layout owns the single h1
+    min_heading_level: 2
+    max_heading_level: 3
+    toc_levels: [2, 3]
+    required_trailing_section: "References"
+    recommended_trailing_section: "Key Takeaways"
+    callout_syntax: "[!NOTE] | [!TIP] | [!WARNING] | [!IMPORTANT] | [!CAUTION]"
+    min_words: 300
+    short_post_words: 500
+    recommended_words: 800
+    max_paragraph_words: 150
+    min_description_chars: 50
+    max_description_chars: 160
+    min_intro_words_before_first_heading: 30
+
+# -----------------------------------------------------------------------------
+# RUBRIC — consumed by scripts/blog/quality.py and validate-blog.yml
+# -----------------------------------------------------------------------------
+rubric:
+  gate: 80
+  weights:
+    content_quality: 30
+    technical_accuracy: 20
+    structure: 15
+    examples: 10
+    readability: 10
+    references: 10
+    seo: 5
+
+  # Category values outside structure.category_enum are a content_quality hit.
+  enforce_category_enum: true
+  # Fenced code blocks are exempt from heading detection.
+  fence_aware_heading_scan: true
+
+# -----------------------------------------------------------------------------
+# AUTHOR — the author card at the foot of every post
+# -----------------------------------------------------------------------------
+author_profile:
+  name: "Saiteja Chada"
+  role: "Backend engineer working on distributed systems and developer tooling."
+  initials: "SC"
+  links:
+    github: "https://github.com/chadasaiteja"
+    linkedin: "https://www.linkedin.com/in/saiteja-chada/"
+    x: "https://x.com/"
+
+# -----------------------------------------------------------------------------
+# NAVIGATION
+# -----------------------------------------------------------------------------
+navigation:
+  show_reading_progress: true
+  progress_height: "2px"
+  show_share: true
+  share_targets: [x, linkedin, copy]
+  show_author_card: true
+  show_prev_next: true

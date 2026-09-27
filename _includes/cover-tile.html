@@ -1,0 +1,39 @@
+{%- comment -%}
+Deterministic 16:9 cover tile. No image file is ever committed.
+
+  include.seed   string  stable per-post identity (the post slug)
+  include.cats   array   post categories, drives the accent colour
+  include.alt    string  accessible label, defaults to the post title
+  include.class  string  extra class, e.g. "post-hero-cover"
+
+The variant is a pure function of the seed, so a post always gets the same
+cover. The accent is looked up from images.category_accent in
+_data/blog_style.yml. Unmapped categories fall back to `default`.
+
+PORTABILITY: every filter below is in the standard Shopify Liquid set. Liquid has
+no `index` and no `push` filter, so the variant is derived from `size`, `plus` and
+`modulo` only. Do not reach for anything outside that set here -- an unknown filter
+fails silently on GitHub Pages and every cover collapses to the default variant.
+{%- endcomment -%}
+{%- assign bs = site.data.blog_style -%}
+{%- assign seed = include.seed | default: "post" | downcase -%}
+{%- assign accent = bs.images.category_accent.default -%}
+
+{%- if include.cats and include.cats.size > 0 -%}
+  {%- assign first_cat = include.cats[0] | strip -%}
+  {%- assign mapped = bs.images.category_accent[first_cat] -%}
+  {%- if mapped -%}
+    {%- assign accent = mapped -%}
+  {%- endif -%}
+{%- endif -%}
+
+{%- assign variant_count = bs.images.cover.variants | default: 6 -%}
+{%- assign seed_len = seed | size -%}
+{%- assign cat_count = include.cats.size | default: 0 -%}
+{%- assign variant = seed_len | plus: cat_count | modulo: variant_count -%}
+
+<div class="cover-tile{% if include.class %} {{ include.class }}{% endif %}"
+     data-variant="{{ variant }}"
+     style="--cover-accent: {{ accent }};"
+     role="img"
+     aria-label="{{ include.alt | default: include.seed | escape }}"></div>

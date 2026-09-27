@@ -2,3 +2,12 @@ Flask>=3.0.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 markdown>=3.5.0
+
+# Reads _data/blog_style.yml, the single source of truth for post style.
+# Used by quality.py, new_post.py and server.py.
+PyYAML>=6.0
+
+# Syntax highlighting for the Flask dev preview. Token class names differ
+# slightly from Rouge's, so preview colours are close to but not identical
+# with the deployed site.
+Pygments>=2.17.0

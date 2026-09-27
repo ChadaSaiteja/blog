@@ -17,8 +17,12 @@ layout: null
 
   <!-- Main CSS -->
   <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/main.css">
+
+  <!-- Design tokens from _data/blog_style.yml. Rendered after main.css so the
+       config wins; main.css keeps the same values as a fallback. -->
+  {% include tokens.html %}
 </head>
-<body>
+<body data-baseurl="{{ site.baseurl }}">
   {% include header.html %}
 
   <main class="main-content">
@@ -27,6 +31,7 @@ layout: null
 
   {% include footer.html %}
 
+  <script src="{{ site.baseurl }}/assets/js/main.js"></script>
   <script>
     // Mobile nav toggle
     const toggle = document.getElementById('nav-toggle');
@@ -34,15 +39,6 @@ layout: null
     if (toggle && nav) {
       toggle.addEventListener('click', () => nav.classList.toggle('open'));
     }
-
-    // Active nav link
-    const links = document.querySelectorAll('.nav-link');
-    links.forEach(l => {
-      if (l.getAttribute('href') === window.location.pathname ||
-          (l.getAttribute('href') !== '{{ site.baseurl }}/' && window.location.pathname.startsWith(l.getAttribute('href')))) {
-        l.classList.add('active');
-      }
-    });
   </script>
 </body>
 </html>

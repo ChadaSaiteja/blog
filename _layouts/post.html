@@ -1,11 +1,53 @@
 ---
 layout: default
 ---
+{%- assign bs = site.data.blog_style -%}
+{%- assign nav = bs.navigation -%}
+
+{%- if nav.show_reading_progress %}
+<div class="reading-progress" role="progressbar" aria-label="Reading progress" aria-hidden="true">
+  <div class="reading-progress__bar" id="reading-progress-bar"
+       style="--progress-height: {{ nav.progress_height | default: '2px' }};"></div>
+</div>
+{%- endif %}
+
 <div class="post-container">
+  {%- comment -%} Table of contents. Left rail on desktop, disclosure above the
+  article on narrow screens. Populated by the initToc() pass in main.js. {%- endcomment -%}
+  <aside class="post-sidebar">
+    <nav class="toc-widget" id="toc-widget" aria-label="Table of contents">
+      <h4>Contents</h4>
+      <ul id="toc-list"></ul>
+    </nav>
+  </aside>
+
   <article class="post-main">
     <a href="{{ site.baseurl }}/" class="back-link">&larr; Back to Blog</a>
 
+    {%- if bs.images.cover.enabled and bs.images.cover.show_on_post %}
+    <div class="post-hero">
+      {% include cover-tile.html seed=page.slug cats=page.categories alt=page.title class="post-hero-cover" %}
+    </div>
+    {%- endif %}
+
     <header class="post-header">
+      {%- if page.categories.size > 0 or page.tags.size > 0 %}
+      <div class="post-taxonomies">
+        {%- for cat in page.categories %}
+        <span class="badge category-badge">{{ cat }}</span>
+        {%- endfor %}
+        {%- for tag in page.tags %}
+        <span class="badge tag-badge">{{ tag }}</span>
+        {%- endfor %}
+      </div>
+      {%- endif %}
+
+      <h1 class="post-title">{{ page.title }}</h1>
+
+      {%- if page.description %}
+      <p class="post-description">{{ page.description }}</p>
+      {%- endif %}
+
       <div class="post-meta-row">
         <span>
           <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 0a.5.5 0 0 1 .5.5V2h5V.5a.5.5 0 0 1 1 0V2H13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h1.5V.5A.5.5 0 0 1 5 0zm-1 4H3a1 1 0 0 0-1 1v1h12V5a1 1 0 0 0-1-1H11V4H5v.5H5V4z"/></svg>
@@ -13,106 +55,81 @@ layout: default
         </span>
         <span>
           <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/></svg>
-          {{ page.reading_time }}
+          {{ page.reading_time | default: bs.structure.defaults.reading_time }}
         </span>
         <span>
           <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/></svg>
-          {{ page.author }}
+          {{ page.author | default: bs.author_profile.name }}
         </span>
+        {%- if page.updated %}
+        <span>
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0m.75 3.5v3.44l2.47 1.44a.75.75 0 1 1-.75 1.3L7.5 8.5V3.5a.75.75 0 0 1 1.5 0"/></svg>
+          Updated {{ page.updated | date: "%b %d, %Y" }}
+        </span>
+        {%- endif %}
+        {%- if nav.show_share %}
+        <span class="post-meta-share">{% include share.html %}</span>
+        {%- endif %}
       </div>
-
-      <h1 class="post-title">{{ page.title }}</h1>
-
-      {% if page.description %}
-      <p class="post-description">{{ page.description }}</p>
-      {% endif %}
-
-      {% if page.categories or page.tags %}
-      <div class="post-taxonomies">
-        {% for cat in page.categories %}
-          <span class="badge category-badge">{{ cat }}</span>
-        {% endfor %}
-        {% for tag in page.tags %}
-          <span class="badge tag-badge">#{{ tag }}</span>
-        {% endfor %}
-      </div>
-      {% endif %}
     </header>
 
     <hr class="post-divider">
 
+    {%- comment -%} Same TOC as the left rail, as a disclosure for narrow screens. {%- endcomment -%}
+    <details class="toc-mobile" id="toc-mobile">
+      <summary>Contents</summary>
+      <ul id="toc-list-mobile"></ul>
+    </details>
+
     <div class="prose" id="post-content">
       {{ content }}
     </div>
-  </article>
 
-  <aside class="post-sidebar">
-    <nav class="toc-widget" id="toc-widget" aria-label="Table of contents">
-      <h4>Contents</h4>
-      <ul id="toc-list"></ul>
+    {%- if page.series %}
+    <div class="series-note">
+      <p><strong>Part of a series:</strong> {{ page.series }}.</p>
+    </div>
+    {%- endif %}
+
+    {%- if nav.show_author_card %}
+    {% include author-card.html %}
+    {%- endif %}
+
+    {%- if nav.show_prev_next %}
+    {%- if page.previous or page.next %}
+    <nav class="post-nav" aria-label="Post navigation">
+      {%- if page.previous %}
+      <a class="post-nav-link post-nav-link--prev" href="{{ page.previous.url | relative_url }}">
+        <span class="post-nav-label">&larr; Previous</span>
+        <span class="post-nav-title">{{ page.previous.title }}</span>
+      </a>
+      {%- else %}
+      <span class="post-nav-spacer"></span>
+      {%- endif %}
+      {%- if page.next %}
+      <a class="post-nav-link post-nav-link--next" href="{{ page.next.url | relative_url }}">
+        <span class="post-nav-label">Next &rarr;</span>
+        <span class="post-nav-title">{{ page.next.title }}</span>
+      </a>
+      {%- endif %}
     </nav>
-  </aside>
+    {%- endif %}
+    {%- endif %}
+  </article>
 </div>
-
-<script>
-  // Auto-generate TOC from headings
-  const headings = document.querySelectorAll('.prose h2, .prose h3');
-  const tocList = document.getElementById('toc-list');
-
-  if (headings.length > 0 && tocList) {
-    headings.forEach((h, i) => {
-      const id = h.id || 'heading-' + i;
-      h.id = id;
-      const li = document.createElement('li');
-      li.style.paddingLeft = h.tagName === 'H3' ? '0.75rem' : '0';
-      const a = document.createElement('a');
-      a.href = '#' + id;
-      a.textContent = h.textContent;
-      li.appendChild(a);
-      tocList.appendChild(li);
-    });
-
-    // Highlight active heading on scroll
-    const tocLinks = tocList.querySelectorAll('a');
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          tocLinks.forEach(l => l.classList.remove('active'));
-          const active = tocList.querySelector('a[href="#' + entry.target.id + '"]');
-          if (active) {
-            active.classList.add('active');
-            const tocWidget = document.getElementById('toc-widget');
-            if (tocWidget) {
-              const activeTop = active.offsetTop;
-              const widgetHeight = tocWidget.clientHeight;
-              if (activeTop > tocWidget.scrollTop + widgetHeight - 60 || activeTop < tocWidget.scrollTop + 20) {
-                tocWidget.scrollTo({ top: Math.max(0, activeTop - 40), behavior: 'smooth' });
-              }
-            }
-          }
-        }
-      });
-    }, { rootMargin: '-20% 0% -70% 0%' });
-
-    headings.forEach(h => observer.observe(h));
-  } else if (document.getElementById('toc-widget')) {
-    document.getElementById('toc-widget').style.display = 'none';
-  }
-</script>
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    const mermaidBlocks = document.querySelectorAll('pre code.language-mermaid, pre.mermaid, code.language-mermaid');
-    if (mermaidBlocks.length > 0) {
-      mermaidBlocks.forEach(function(el) {
-        const parent = el.tagName === 'CODE' ? el.parentElement : el;
-        const container = document.createElement('div');
-        container.className = 'mermaid';
-        container.textContent = el.textContent;
-        parent.replaceWith(container);
-      });
-      mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
-    }
+  document.addEventListener("DOMContentLoaded", function () {
+    var blocks = document.querySelectorAll('pre code.language-mermaid, pre.mermaid, code.language-mermaid');
+    if (blocks.length === 0) return;
+    blocks.forEach(function (el) {
+      var parent = el.tagName === 'CODE' ? el.parentElement : el;
+      var container = document.createElement('div');
+      container.className = 'mermaid';
+      container.textContent = el.textContent;
+      parent.replaceWith(container);
+    });
+    mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
   });
 </script>

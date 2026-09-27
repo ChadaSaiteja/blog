@@ -1,4 +1,32 @@
+{%- comment -%}
+Site footer. All social links come from author_profile in
+_data/blog_style.yml, so there is one place to change them.
+{%- endcomment -%}
+{%- assign profile = site.data.blog_style.author_profile -%}
 <footer class="site-footer">
   <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="logo-text">{{ profile.name }}</span>
+      <span class="footer-tagline">{{ profile.role }}</span>
+    </div>
+
+    <nav class="footer-links" aria-label="Footer">
+      <a class="footer-link" href="{{ site.baseurl }}/">Blog</a>
+      <a class="footer-link" href="{{ site.baseurl }}/feed.xml">RSS</a>
+      {%- if profile.links.github %}
+      <a class="footer-link" href="{{ profile.links.github }}" target="_blank" rel="noopener">GitHub</a>
+      {%- endif %}
+      {%- if profile.links.linkedin %}
+      <a class="footer-link" href="{{ profile.links.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
+      {%- endif %}
+      {%- if profile.links.x %}
+      <a class="footer-link" href="{{ profile.links.x }}" target="_blank" rel="noopener">X</a>
+      {%- endif %}
+    </nav>
+
+    <div class="footer-copy">
+      <span>&copy; {{ site.time | date: "%Y" }} {{ profile.name }}</span>
+      <span>Built with Jekyll</span>
+    </div>
   </div>
 </footer>

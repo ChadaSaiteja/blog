@@ -15,6 +15,12 @@ markdown: kramdown
 highlighter: rouge
 kramdown:
   input: GFM
+  # The GFM parser defaults this to false, which left every post heading
+  # without an id and the table of contents full of dead "heading-0" anchors.
+  # The TOC in assets/js/main.js slugifies anything still missing, but real
+  # ids here mean deep links survive without JavaScript.
+  auto_ids: true
+  hard_wrap: false
   syntax_highlighter_opts:
     css_class: 'highlight'
 

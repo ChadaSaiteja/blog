@@ -1,0 +1,44 @@
+{%- comment -%}
+Emits the design tokens from _data/blog_style.yml as :root CSS custom
+properties. Included AFTER assets/css/main.css so these values win.
+
+If _data/blog_style.yml is missing or malformed this renders nothing and the
+hardcoded fallbacks in main.css apply — the site still looks correct.
+
+Token names map 1:1 to CSS variables by replacing underscores with dashes:
+  tokens.color.bg        ->  --bg
+  tokens.color.code_bg    ->  --code-bg
+  tokens.color.callout_note_bg -> --callout-note-bg
+  tokens.font.sans        ->  --font-sans
+  tokens.layout.max_width ->  --max-width
+  tokens.space.2xl       ->  --space-2xl
+  tokens.radius.base     ->  --radius
+  tokens.radius.md       ->  --radius-md
+  tokens.transition       ->  --transition
+{%- endcomment -%}
+{%- assign bs = site.data.blog_style.tokens -%}
+{%- if bs -%}
+<style>
+  :root {
+  {%- for pair in bs.color %}
+    --{{ pair[0] | replace: "_", "-" }}: {{ pair[1] }};
+  {%- endfor %}
+  {%- for pair in bs.font %}
+    --{{ pair[0] }}: {{ pair[1] }};
+  {%- endfor %}
+  {%- for pair in bs.layout %}
+    --{{ pair[0] | replace: "_", "-" }}: {{ pair[1] }};
+  {%- endfor %}
+  {%- for pair in bs.space %}
+    --space-{{ pair[0] }}: {{ pair[1] }};
+  {%- endfor %}
+    --radius: {{ bs.radius.base }};
+  {%- for pair in bs.radius %}
+    {%- unless pair[0] == "base" %}
+    --radius-{{ pair[0] }}: {{ pair[1] }};
+    {%- endunless %}
+  {%- endfor %}
+    --transition: {{ bs.transition }};
+  }
+</style>
+{%- endif -%}
