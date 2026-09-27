@@ -256,16 +256,16 @@ rubric:
   # Fenced code blocks are exempt from heading detection.
   fence_aware_heading_scan: true
 
-# -----------------------------------------------------------------------------
-# AUTHOR — the author card at the foot of every post
-# -----------------------------------------------------------------------------
-author_profile:
-  name: "Saiteja Chada"
-  role: "Backend engineer working on distributed systems and developer tooling."
-  initials: "SC"
-  links:
-    github: "https://github.com/chadasaiteja"
-    linkedin: "https://www.linkedin.com/in/chada-saiteja/"
+# # -----------------------------------------------------------------------------
+# # AUTHOR — the author card at the foot of every post
+# # -----------------------------------------------------------------------------
+# author_profile:
+#   name: "Saiteja Chada"
+#   role: "Backend engineer working on distributed systems and developer tooling."
+#   initials: "SC"
+#   links:
+#     github: "https://github.com/chadasaiteja"
+#     linkedin: "https://www.linkedin.com/in/chada-saiteja/"
 
 # -----------------------------------------------------------------------------
 # NAVIGATION
