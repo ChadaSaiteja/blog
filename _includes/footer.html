@@ -1,28 +1,16 @@
 {%- comment -%}
-Site footer. All social links come from author_profile in
-_data/blog_style.yml, so there is one place to change them.
+Site footer.
+
+Deliberately independent of author_profile: that block is currently disabled in
+_data/blog_style.yml, and reading it here rendered an empty brand name and an
+empty tagline. If you re-enable it, put the name, role and social links back
+below and they will pick it up.
 {%- endcomment -%}
-{%- assign profile = site.data.blog_style.author_profile -%}
 <footer class="site-footer">
   <div class="footer-inner">
-    <div class="footer-brand">
-      <span class="logo-text">{{ profile.name }}</span>
-      <span class="footer-tagline">{{ profile.role }}</span>
-    </div>
-
     <nav class="footer-links" aria-label="Footer">
       <a class="footer-link" href="{{ site.baseurl }}/">Blog</a>
       <a class="footer-link" href="{{ site.baseurl }}/feed.xml">RSS</a>
-      {%- if profile.links.github %}
-      <a class="footer-link" href="{{ profile.links.github }}" target="_blank" rel="noopener">GitHub</a>
-      {%- endif %}
-      {%- if profile.links.linkedin %}
-      <a class="footer-link" href="{{ profile.links.linkedin }}" target="_blank" rel="noopener">LinkedIn</a>
-      {%- endif %}
-      {%- if profile.links.x %}
-      <a class="footer-link" href="{{ profile.links.x }}" target="_blank" rel="noopener">X</a>
-      {%- endif %}
     </nav>
-    
   </div>
 </footer>

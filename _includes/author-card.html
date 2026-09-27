@@ -1,9 +1,14 @@
 {%- comment -%}
-Author card shown at the foot of every post. All copy and links come from
-author_profile in _data/blog_style.yml. Set navigation.show_author_card to
-false in the config to hide it.
+Author card shown at the foot of every post.
+
+OPTIONAL. Everything here comes from author_profile in _data/blog_style.yml,
+which is currently disabled. That block being absent must render nothing at
+all rather than an empty card, so the whole include is behind an existence
+check. Set navigation.show_author_card to true AND re-enable
+author_profile in the config to bring the card back.
 {%- endcomment -%}
 {%- assign profile = site.data.blog_style.author_profile -%}
+{%- if profile -%}
 <aside class="author-card" aria-label="About the author">
   <div class="author-avatar" aria-hidden="true">{{ profile.initials }}</div>
   <div class="author-meta">
@@ -22,3 +27,4 @@ false in the config to hide it.
     </div>
   </div>
 </aside>
+{%- endif -%}

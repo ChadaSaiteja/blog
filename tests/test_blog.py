@@ -234,8 +234,95 @@ When deploying a production cache, keep these critical architectural patterns in
         config = load_config()
         self.assertEqual(sum(config["rubric"]["weights"].values()), 100)
         self.assertEqual(config["rubric"]["gate"], 80)
-        for required_key in ("tokens", "images", "structure", "rubric", "author_profile", "navigation"):
-            self.assertIn(required_key, config, "_data/blog_style.yml must define {}".format(required_key))
+        for required_key in ("tokens", "structure", "rubric"):
+            self.assertIn(
+                required_key, config,
+                "_data/blog_style.yml must define {}".format(required_key),
+            )
+
+    def test_templates_only_read_config_keys_that_exist(self):
+        """Every site.data.blog_style path a template reads must resolve.
+
+        A config key can be removed or commented out and every template will
+        still render -- Liquid resolves a missing key to nil, prints nothing and
+        raises nothing. That is how the author card came to render as an empty
+        box and the footer as an empty brand, with no error anywhere. This test
+        turns that class of mistake into a named failure.
+
+        Aliases are resolved per file, because a template may assign any of:
+            bs = site.data.blog_style          -> bs.tokens.color
+            bs = site.data.blog_style.tokens   -> bs.color
+        """
+        config = load_config()
+
+        # Roots that a template only reads behind an existence check, so their
+        # absence is deliberate rather than a bug.
+        optional_roots = {"author_profile"}
+
+        assign_re = re.compile(
+            r"\{%-?\s*assign\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"
+            r"site\.data\.blog_style((?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*-?%\}"
+        )
+        direct_re = re.compile(
+            r"site\.data\.blog_style((?:\.[A-Za-z_][A-Za-z0-9_]*)+)"
+        )
+
+        templates = []
+        for base in ("_layouts", "_includes"):
+            for name in sorted(os.listdir(os.path.join(ROOT, base))):
+                templates.append(os.path.join(base, name))
+        templates.append("index.html")
+
+        # Liquid exposes these on a list as properties, not as config keys.
+        list_properties = {"size", "first", "last"}
+
+        def first_missing(segments):
+            value = config
+            for segment in segments:
+                if isinstance(value, (list, str)) and segment in list_properties:
+                    continue
+                if isinstance(value, dict) and segment in value:
+                    value = value[segment]
+                else:
+                    return segment
+            return None
+
+        problems = []
+        for relative in templates:
+            path = os.path.join(ROOT, relative)
+            if not path.endswith((".html", ".md")):
+                continue
+            with open(path, encoding="utf-8") as handle:
+                source = handle.read()
+
+            references = []
+
+            for match in direct_re.finditer(source):
+                segments = [s for s in match.group(1).split(".") if s]
+                references.append(segments)
+
+            # Local aliases, with the path they were assigned from.
+            for match in assign_re.finditer(source):
+                alias, prefix = match.group(1), match.group(2)
+                prefix_segments = [s for s in prefix.split(".") if s]
+                alias_re = re.compile(
+                    r"\b" + re.escape(alias) + r"((?:\.[A-Za-z_][A-Za-z0-9_]*)+)"
+                )
+                for use in alias_re.finditer(source):
+                    tail = [s for s in use.group(1).split(".") if s]
+                    references.append(prefix_segments + tail)
+
+            for segments in references:
+                if not segments or segments[0] in optional_roots:
+                    continue
+                missing = first_missing(segments)
+                if missing:
+                    problems.append(
+                        "{} reads site.data.blog_style.{} but _data/blog_style.yml "
+                        "has no '{}'".format(relative, ".".join(segments), missing)
+                    )
+
+        self.assertEqual(problems, [], "\n".join(problems))
 
     def test_quality_scores_are_driven_by_the_config(self):
         config = load_config()
@@ -536,8 +623,8 @@ draft: false
         self.assertNotRegex(final_html, r"\{%|\{\{")
 
         for expected in ('id="reading-progress-bar"', 'id="toc-list"',
-                         'class="toc-mobile"', 'class="author-card"',
-                         'data-share', "--accent:", "--header-height:"):
+                         'class="toc-mobile"', 'data-share', "--accent:",
+                         "--header-height:"):
             self.assertIn(expected, final_html, "post page is missing {}".format(expected))
 
         # Covers are switched off in the config for now, so the tile must be
@@ -548,6 +635,16 @@ draft: false
         else:
             self.assertNotIn('class="cover-tile', final_html)
             self.assertNotIn("post-hero", final_html)
+
+        # The author card needs both navigation.show_author_card and a populated
+        # author_profile. Either one off means the card must not render at all,
+        # never render empty.
+        card_wanted = config["navigation"].get("show_author_card", False)
+        card_possible = card_wanted and bool(config.get("author_profile"))
+        if card_possible:
+            self.assertIn('class="author-card"', final_html)
+        else:
+            self.assertNotIn('class="author-card"', final_html)
 
     # ------------------------------------------------------------------
     # validate_style.py

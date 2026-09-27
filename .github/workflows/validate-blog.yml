@@ -44,8 +44,8 @@ jobs:
           weights = config["rubric"]["weights"]
           assert sum(weights.values()) == 100, "rubric weights must total 100"
           assert config["rubric"]["gate"] > 0
-          for key in ("tokens", "images", "structure", "rubric", "author_profile", "navigation"):
-              assert key in config, "_data/blog_style.yml is missing {}".format(key)
+          for key in ("tokens", "structure", "rubric"):
+              assert key in config, "_data/blog_style.yml must define {}".format(key)
           # The scaffolding must run without raising.
           build_front_matter(
               {"layout": "post", "title": "t", "description": "d",
@@ -54,6 +54,84 @@ jobs:
           )
           build_body(config)
           print("style config ok")
+          PY
+
+      - name: Check templates only read config keys that exist
+        run: |
+          # A config key can be removed or commented out and every template will
+          # still render, because Liquid resolves a missing key to nil and raises
+          # nothing. That is how the author card came to render as an empty box.
+          # This step is the same contract test as
+          # tests/test_blog.py::test_templates_only_read_config_keys_that_exist
+          # and names the file and the key, rather than a generic assertion.
+          python - <<'PY'
+          import os
+          import re
+          import sys
+          sys.path.insert(0, "scripts/blog")
+          from quality import load_config
+
+          config = load_config()
+          optional_roots = {"author_profile"}
+          list_properties = {"size", "first", "last"}
+
+          assign_re = re.compile(
+              r"\{%-?\s*assign\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*"
+              r"site\.data\.blog_style((?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*-?%\}"
+          )
+          direct_re = re.compile(
+              r"site\.data\.blog_style((?:\.[A-Za-z_][A-Za-z0-9_]*)+)"
+          )
+
+          templates = []
+          for base in ("_layouts", "_includes"):
+              for name in sorted(os.listdir(base)):
+                  if name.endswith((".html", ".md")):
+                      templates.append(os.path.join(base, name))
+          templates.append("index.html")
+
+          def first_missing(segments):
+              value = config
+              for segment in segments:
+                  if isinstance(value, (list, str)) and segment in list_properties:
+                      continue
+                  if isinstance(value, dict) and segment in value:
+                      value = value[segment]
+                  else:
+                      return segment
+              return None
+
+          problems = []
+          for relative in templates:
+              with open(relative, encoding="utf-8") as handle:
+                  source = handle.read()
+              references = []
+              for match in direct_re.finditer(source):
+                  references.append([s for s in match.group(1).split(".") if s])
+              for match in assign_re.finditer(source):
+                  alias, prefix = match.group(1), match.group(2)
+                  prefix_segments = [s for s in prefix.split(".") if s]
+                  alias_re = re.compile(
+                      r"\b" + re.escape(alias) + r"((?:\.[A-Za-z_][A-Za-z0-9_]*)+)"
+                  )
+                  for use in alias_re.finditer(source):
+                      tail = [s for s in use.group(1).split(".") if s]
+                      references.append(prefix_segments + tail)
+              for segments in references:
+                  if not segments or segments[0] in optional_roots:
+                      continue
+                  missing = first_missing(segments)
+                  if missing:
+                      problems.append(
+                          "{} reads site.data.blog_style.{} but the config has no '{}'".format(
+                              relative, ".".join(segments), missing)
+                      )
+
+          if problems:
+              for problem in problems:
+                  print("  " + problem)
+              sys.exit("Templates read config keys that do not exist.")
+          print("config contract ok")
           PY
 
       - name: Check layouts and includes still parse

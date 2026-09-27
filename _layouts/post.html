@@ -59,7 +59,7 @@ layout: default
         </span>
         <span>
           <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/></svg>
-          {{ page.author | default: bs.author_profile.name }}
+          {{ page.author | default: bs.structure.defaults.author }}
         </span>
         {%- if page.updated %}
         <span>

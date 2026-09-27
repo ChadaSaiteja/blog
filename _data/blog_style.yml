@@ -77,9 +77,12 @@ tokens:
     content_column: "4.8fr"
     gutter_column: "2fr"
     sidebar_min_width: "1024px"
-    # Sticky header height. .toc-widget sticks this far down and heading
-    # anchors scroll to here, so all three stay in step.
-    header_height: "76px"
+    # Distance the sticky left rail sits from the top of the viewport, and how
+    # far above a heading an anchor link lands. The site header is currently
+    # commented out in _includes/header.html, so this is a small breathing
+    # margin rather than the height of a real bar. Put it back to 76px if the
+    # header is ever restored.
+    header_height: "1rem"
 
   space:
     xs: "0.25rem"
@@ -256,9 +259,15 @@ rubric:
   # Fenced code blocks are exempt from heading detection.
   fence_aware_heading_scan: true
 
-# # -----------------------------------------------------------------------------
-# # AUTHOR — the author card at the foot of every post
-# # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# AUTHOR — optional
+# -----------------------------------------------------------------------------
+# There is no author card or footer profile on the site right now, so this
+# block is disabled. Everything that reads it is behind an existence guard, so
+# leaving it commented out is safe: _includes/author-card.html renders nothing,
+# and _includes/footer.html does not use it. Re-enable the block and set
+# navigation.show_author_card to true to bring the author card back.
+#
 # author_profile:
 #   name: "Saiteja Chada"
 #   role: "Backend engineer working on distributed systems and developer tooling."
@@ -275,5 +284,7 @@ navigation:
   progress_height: "2px"
   show_share: true
   share_targets: [x, linkedin, copy]
-  show_author_card: true
+  # No author card: author_profile is disabled above, so this would render an
+  # empty box. Set both to bring it back.
+  show_author_card: false
   show_prev_next: true
