@@ -4,14 +4,30 @@ import re
 import glob
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory, Response
+from html import escape
 import markdown
+import yaml
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from quality import BlogQualityAnalyzer
+from liquid_render import LiquidRenderer, render_layout
 
 app = Flask(__name__)
 WORKSPACE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 POSTS_DIR = os.path.join(WORKSPACE_DIR, "_posts")
+
+# Extensions applied to a post body. Deliberately excludes `codehilite`:
+# it discards the fence's language, so render_post_markdown does the
+# highlighting itself to match kramdown + rouge output exactly.
+# `toc` is included so the preview produces the same heading ids the real
+# build does, which is what the table of contents in assets/js/main.js reads.
+MARKDOWN_EXTENSIONS = [
+    "fenced_code",
+    "tables",
+    "sane_lists",
+    "attr_list",
+    "toc",
+]
 
 os.makedirs(POSTS_DIR, exist_ok=True)
 
@@ -115,201 +131,209 @@ def strip_jekyll_frontmatter(content):
         return content[fm_match.end():]
     return content
 
-# --- LIQUID LAYOUT EMULATOR RENDERING ---
-def resolve_includes(html_text):
-    includes_dir = os.path.join(WORKSPACE_DIR, "_includes")
-    include_tags = re.findall(r'\{?\%\s*include\s+(.*?)\s*\%\}', html_text)
-    for tag in include_tags:
-        inc_path = os.path.join(includes_dir, tag)
-        if os.path.exists(inc_path):
-            with open(inc_path, 'r', encoding='utf-8') as inf:
-                inc_content = inf.read()
-            html_text = html_text.replace(f"{{% include {tag} %}}", inc_content)
-        else:
-            html_text = html_text.replace(f"{{% include {tag} %}}", f"<!-- Include {tag} not found -->")
-    return html_text
+# Liquid rendering lives in scripts/blog/liquid_render.py, which parses the
+# real _layouts/ and _includes/ templates against the real _data/blog_style.yml
+# instead of pattern-matching them. The previous regex emulator here silently
+# dropped markup as soon as a layout used {% assign %}, a nested {% for %} or
+# {% include %} with arguments.
 
-def emulate_liquid_render(html_text, page_metadata=None, content_body=""):
-    page_metadata = page_metadata or {}
-    
-    # 1. Inject content block
-    html_text = html_text.replace("{{ content }}", content_body)
-    
-    # 2. Handle {% if page.X %} ... {% endif %} blocks
-    def resolve_if_page(match):
-        key = match.group(1).strip()
-        val = page_metadata.get(key)
-        inner = match.group(2)
-        # Handle {% if %} ... {% else %} ... {% endif %}
-        else_match = re.search(r'(.*?)\{%\s*else\s*%\}(.*)', inner, re.DOTALL)
-        if else_match:
-            if_part = else_match.group(1)
-            else_part = else_match.group(2)
-            return if_part if val else else_part
-        return inner if val else ''
-    html_text = re.sub(r'\{%\s*if page\.(\w+)\s*%\}(.*?)\{%\s*endif\s*%\}',
-                       resolve_if_page, html_text, flags=re.DOTALL)
-    
-    # 3. Resolve for loops over page.categories and page.tags
-    def resolve_for_cats(match):
-        items = page_metadata.get("categories", [])
-        template = match.group(1)
-        result = ""
-        for item in items:
-            result += template.replace("{{ cat }}", item)
-        return result
-    html_text = re.sub(r'\{%\s*for cat in page\.categories[^%]*%\}(.*?)\{%\s*endfor\s*%\}',
-                       resolve_for_cats, html_text, flags=re.DOTALL)
-    
-    def resolve_for_tags(match):
-        items = page_metadata.get("tags", [])
-        template = match.group(1)
-        result = ""
-        for item in items:
-            result += template.replace("{{ tag }}", item)
-        return result
-    html_text = re.sub(r'\{%\s*for tag in page\.tags[^%]*%\}(.*?)\{%\s*endfor\s*%\}',
-                       resolve_for_tags, html_text, flags=re.DOTALL)
-    
-    # 4. Resolve relative_urls
-    html_text = re.sub(r"\{\{\s*'(.*?)'\s*\|\s*relative_url\s*\}\}", r'\1', html_text)
-    html_text = re.sub(r'\{\{\s*"(.*?)"\s*\|\s*relative_url\s*\}\}', r'\1', html_text)
-    
-    # 5. Resolve page variables
-    html_text = html_text.replace("{{ page.title }}", str(page_metadata.get("title", "")))
-    html_text = html_text.replace("{{ page.description }}", str(page_metadata.get("description", "")))
-    html_text = html_text.replace("{{ page.author }}", str(page_metadata.get("author", "Saiteja")))
-    html_text = html_text.replace("{{ page.reading_time }}", str(page_metadata.get("reading_time", "5 min read")))
-    
-    pdate = page_metadata.get("date", "")
-    formatted_date = ""
-    if pdate:
-        if isinstance(pdate, str):
-            try:
-                pdate = datetime.strptime(pdate, "%Y-%m-%d")
-            except:
-                pass
-        if isinstance(pdate, datetime):
-            formatted_date = pdate.strftime("%B %d, %Y")
-        else:
-            formatted_date = str(pdate)
-    html_text = html_text.replace('{{ page.date | date: "%B %d, %Y" }}', formatted_date)
-    
-    # 6. Resolve includes
-    html_text = resolve_includes(html_text)
-    
-    # 7. Site config variables
-    html_text = html_text.replace("{{ site.title }}", "Saiteja's Dev Blog")
-    html_text = html_text.replace("{{ site.description }}", "Backend engineering blog by Saiteja Chada.")
-    html_text = html_text.replace('{{ site.time | date: "%Y" }}', str(datetime.today().year))
-    
-    # 8. Remove any remaining Liquid tags/variables
-    html_text = re.sub(r'\{%.*?%\}', '', html_text, flags=re.DOTALL)
-    html_text = re.sub(r'\{\{.*?\}\}', '', html_text, flags=re.DOTALL)
-    return html_text
-
-
-def render_blog_card(post_dict):
-    includes_dir = os.path.join(WORKSPACE_DIR, "_includes")
-    with open(os.path.join(includes_dir, "blog-card.html"), 'r', encoding='utf-8') as f:
-        card_layout = f.read()
-        
-    # Inject variables
-    card_layout = card_layout.replace("{{ post.url | relative_url }}", post_dict["url"])
-    card_layout = card_layout.replace("{{ post.title }}", post_dict["title"])
-    card_layout = card_layout.replace("{{ post.description | default: post.excerpt | strip_html | truncatewords: 25 }}", post_dict["description"])
-    
-    pdate = post_dict.get("date", "")
-    if isinstance(pdate, str):
-        try:
-            pdate = datetime.strptime(pdate, "%Y-%m-%d")
-        except:
-            pass
-    formatted_date = pdate.strftime("%B %d, %Y") if isinstance(pdate, datetime) else str(pdate)
-    card_layout = card_layout.replace('{{ post.date | date: "%B %d, %Y" }}', formatted_date)
-    
-    read_time = post_dict.get("reading_time", "5 min read")
-    # Replace the {% if post.reading_time %}{{ post.reading_time }}{% else %}5 min read{% endif %} block
-    card_layout = re.sub(
-        r'\{%\s*if post\.reading_time\s*%\}.*?\{%\s*else\s*%\}.*?\{%\s*endif\s*%\}',
-        read_time,
-        card_layout,
-        flags=re.DOTALL
-    )
-    
-    # Resolve loops
-    cats_html = "".join([f'<span class="badge category-badge">{c}</span>' for c in post_dict.get("categories", [])])
-    tags_html = "".join([f'<span class="badge tag-badge">#{t}</span>' for t in post_dict.get("tags", [])])
-    card_layout = re.sub(r'\{%\s*for cat in post\.categories[^%]*%\}.*?\{%\s*endfor\s*%\}', cats_html, card_layout, flags=re.DOTALL)
-    card_layout = re.sub(r'\{%\s*for tag in post\.tags[^%]*%\}.*?\{%\s*endfor\s*%\}', tags_html, card_layout, flags=re.DOTALL)
-    
-    card_layout = re.sub(r'\{%.*?\%}', '', card_layout)
-    card_layout = re.sub(r'\{\{.*?\}\}', '', card_layout)
-    return card_layout
 
 # --- PUBLIC ROUTE SERVINGS ---
+
+def build_site_context():
+    """The Jekyll `site` object, built from _config.yml and _data/*.yml.
+
+    Reads the same style config the real build reads, so the dev preview and
+    the deployed site cannot disagree about tokens, categories or navigation.
+    """
+    config = {}
+    config_path = os.path.join(WORKSPACE_DIR, "_config.yml")
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f) or {}
+
+    data = {}
+    data_dir = os.path.join(WORKSPACE_DIR, "_data")
+    if os.path.isdir(data_dir):
+        for name in sorted(os.listdir(data_dir)):
+            if name.endswith((".yml", ".yaml")):
+                with open(os.path.join(data_dir, name), "r", encoding="utf-8") as f:
+                    data[os.path.splitext(name)[0]] = yaml.safe_load(f) or {}
+
+    posts = get_all_posts(include_drafts=True)
+    posts = sorted(
+        posts,
+        key=lambda p: (str(p.get("date") or ""), p.get("slug", "")),
+        reverse=True,
+    )
+
+    return {
+        "title": config.get("title", ""),
+        "description": config.get("description", ""),
+        "url": config.get("url", ""),
+        "baseurl": config.get("baseurl", ""),
+        "time": datetime.now(),
+        "data": data,
+        "posts": posts,
+    }
+
+
+def build_post_context(post_dict, site):
+    """A Jekyll `page` object for one post, with previous/next resolved."""
+    posts = site["posts"]
+    slugs = [p.get("slug") for p in posts]
+    try:
+        position = slugs.index(post_dict.get("slug"))
+    except ValueError:
+        position = 0
+
+    page = dict(post_dict)
+    page["layout"] = "post"
+    page["date"] = post_dict.get("date")
+    # Jekyll's `previous` is the older post, `next` the newer one.
+    page["previous"] = posts[position + 1] if position + 1 < len(posts) else None
+    page["next"] = posts[position - 1] if position > 0 else None
+    return page
+
+
+FENCE_HTML_RE = re.compile(
+    r'<pre><code(?: class="language-([^"]+)")?>(.*?)</code></pre>',
+    re.DOTALL,
+)
+
+
+def _highlight_code(source, language):
+    """Syntax-highlight one block, or return it escaped when Pygments is absent.
+
+    Pygments token class names do not match Rouge's one for one, so preview
+    colours are close to but not identical with the deployed site. The
+    surrounding markup is identical, which is what the .code-box chrome, the
+    language label and the copy button actually depend on.
+    """
+    if not language:
+        return escape(source)
+    try:
+        from pygments import highlight as pygments_highlight
+        from pygments.formatters import HtmlFormatter
+        from pygments.lexers import get_lexer_by_name
+        from pygments.util import ClassNotFound
+    except ImportError:
+        return escape(source)
+    try:
+        lexer = get_lexer_by_name(language, stripall=True)
+    except ClassNotFound:
+        return escape(source)
+    formatter = HtmlFormatter(nowrap=True)
+    return pygments_highlight(source, lexer, formatter)
+
+
+def render_post_markdown(body):
+    """Render a post body to the same markup shape kramdown + rouge produce.
+
+    kramdown runs with input: GFM and syntax_highlighter_opts.css_class set to
+    'highlight', so a fenced block comes out as
+
+        <div class="language-bash highlighter-rouge"><div class="highlight">
+        <pre class="highlight"><code class="language-bash" data-lang="bash">...</code>
+        </pre></div></div>
+
+    The old call used codehilite, which swallows the fence's language entirely,
+    so the preview lost both the .highlight wrapper and the class the code box
+    header reads its language label from.
+    """
+    html = markdown.markdown(
+        body,
+        extensions=MARKDOWN_EXTENSIONS,
+        output_format="html",
+    )
+
+    def wrap(match):
+        language = (match.group(1) or "").strip()
+        source = match.group(2)
+        source = (
+            source.replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&quot;", '"')
+            .replace("&#39;", "'")
+            .replace("&amp;", "&")
+        )
+        inner = _highlight_code(source, language)
+        return (
+            '<div class="language-{lang} highlighter-rouge"><div class="highlight">'
+            '<pre class="highlight"><code class="language-{lang}" data-lang="{lang}">'
+            "{inner}</code></pre></div></div>"
+        ).format(lang=language or "text", inner=inner)
+
+    return FENCE_HTML_RE.sub(wrap, html)
+
+
+def render_page_file(path, site, page):
+    with open(path, "r", encoding="utf-8") as f:
+        source = strip_jekyll_frontmatter(f.read())
+    renderer = LiquidRenderer(WORKSPACE_DIR)
+    return renderer.render(source, [{"site": site, "page": page}])
+
+
+def render_layout_file(name, site, page, content=""):
+    path = os.path.join(WORKSPACE_DIR, "_layouts", name + ".html")
+    output, unsupported = render_layout(WORKSPACE_DIR, name, {"site": site, "page": page}, content)
+    return output, unsupported
+
+
+def preview_banner(unsupported):
+    """Dev-only notice when the preview could not resolve every construct."""
+    if not unsupported:
+        return ""
+    items = "".join("<li>{}</li>".format(escape(u)) for u in sorted(set(unsupported)))
+    return (
+        '<div style="background:#fffbeb;border:1px solid #b45309;color:#92400e;'
+        'padding:12px 16px;margin:0 0 24px;font:13px/1.6 monospace;border-radius:6px">'
+        "<strong>Dev preview is not faithful.</strong> These Liquid constructs are "
+        "not supported by scripts/blog/liquid_render.py, so the page below differs "
+        "from the Jekyll build:<ul>{}</ul></div>"
+    ).format(items)
+
 
 @app.route('/')
 @app.route('/blog')
 @app.route('/blog/')
 def blog_list_page():
-    posts = get_all_posts(include_drafts=False)
-    
-    with open(os.path.join(WORKSPACE_DIR, "index.html"), 'r', encoding='utf-8') as f:
-        blog_content = strip_jekyll_frontmatter(f.read())
-        
-    loop_regex = r'\{%.*?for post in sorted_posts.*?%\}(.*?)\{%.*?endfor.*?%\}'
-    loop_match = re.search(loop_regex, blog_content, re.DOTALL)
-    
-    grid_html = ""
-    if loop_match and len(posts) > 0:
-        for post in posts:
-            cats_data = " ".join(post["categories"]).lower()
-            tags_data = " ".join(post["tags"]).lower()
-            title_data = post["title"].lower()
-            desc_data = post["description"].lower()
-            grid_html += f'<div class="filterable-post" data-title="{title_data}" data-description="{desc_data}" data-categories="{cats_data}" data-tags="{tags_data}">'
-            grid_html += render_blog_card(post)
-            grid_html += '</div>'
-    else:
-        grid_html = '<p>No articles published yet.</p>'
-        
-    blog_content = re.sub(loop_regex, grid_html, blog_content, flags=re.DOTALL)
-    
-    # Wrap in default layout
-    with open(os.path.join(WORKSPACE_DIR, "_layouts", "default.html"), 'r', encoding='utf-8') as f:
-        default_layout = strip_jekyll_frontmatter(f.read())
-        
-    final_html = emulate_liquid_render(default_layout, {"title": "Blog"}, blog_content)
-    return final_html
+    site = build_site_context()
+    page = {"title": "Blog", "description": site.get("description", "")}
+
+    content = render_page_file(
+        os.path.join(WORKSPACE_DIR, "index.html"), site, page
+    )
+    body, unsupported = render_layout_file("default", site, page, content)
+    body = body.replace("<main class=\"main-content\">",
+                        "<main class=\"main-content\">" + preview_banner(unsupported), 1)
+    return body
 
 @app.route('/blog/<slug>')
 @app.route('/blog/<slug>/')
 def public_blog_post(slug):
-    posts = get_all_posts(include_drafts=True)
+    site = build_site_context()
+
     post_dict = None
-    for post in posts:
+    for post in site["posts"]:
         if post["slug"] == slug:
             post_dict = post
             break
-            
+
     if not post_dict:
         return f"Article '{slug}' not found", 404
-        
-    # Parse markdown body
-    post_html = markdown.markdown(post_dict["body"], extensions=['fenced_code', 'codehilite', 'tables'])
-    
-    # Load post layout
-    with open(os.path.join(WORKSPACE_DIR, "_layouts", "post.html"), 'r', encoding='utf-8') as f:
-        post_layout = strip_jekyll_frontmatter(f.read())
-        
-    rendered_post = emulate_liquid_render(post_layout, post_dict, post_html)
-    
-    # Wrap in default layout
-    with open(os.path.join(WORKSPACE_DIR, "_layouts", "default.html"), 'r', encoding='utf-8') as f:
-        default_layout = strip_jekyll_frontmatter(f.read())
-        
-    final_html = emulate_liquid_render(default_layout, post_dict, rendered_post)
+
+    post_html = render_post_markdown(post_dict.get("body", ""))
+    page = build_post_context(post_dict, site)
+
+    rendered_post, unsupported_post = render_layout_file("post", site, page, post_html)
+    final_html, unsupported_default = render_layout_file("default", site, page, rendered_post)
+
+    banner = preview_banner(unsupported_post + unsupported_default)
+    if banner:
+        final_html = final_html.replace(
+            '<main class="main-content">', '<main class="main-content">' + banner, 1
+        )
     return final_html
 
 # API JSON Search Index endpoint

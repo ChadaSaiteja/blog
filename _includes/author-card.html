@@ -1,0 +1,24 @@
+{%- comment -%}
+Author card shown at the foot of every post. All copy and links come from
+author_profile in _data/blog_style.yml. Set navigation.show_author_card to
+false in the config to hide it.
+{%- endcomment -%}
+{%- assign profile = site.data.blog_style.author_profile -%}
+<aside class="author-card" aria-label="About the author">
+  <div class="author-avatar" aria-hidden="true">{{ profile.initials }}</div>
+  <div class="author-meta">
+    <div class="author-name">{{ profile.name }}</div>
+    <p class="author-role">{{ profile.role }}</p>
+    <div class="author-links">
+      {%- if profile.links.github %}
+      <a class="author-link" href="{{ profile.links.github }}" rel="noopener me" target="_blank">GitHub</a>
+      {%- endif %}
+      {%- if profile.links.linkedin %}
+      <a class="author-link" href="{{ profile.links.linkedin }}" rel="noopener" target="_blank">LinkedIn</a>
+      {%- endif %}
+      {%- if profile.links.x %}
+      <a class="author-link" href="{{ profile.links.x }}" rel="noopener" target="_blank">X</a>
+      {%- endif %}
+    </div>
+  </div>
+</aside>

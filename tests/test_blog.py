@@ -5,10 +5,77 @@ import tempfile
 import re
 from datetime import datetime
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts", "blog"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(ROOT, "scripts", "blog"))
 
-from quality import BlogQualityAnalyzer
+from quality import BlogQualityAnalyzer, load_config
+from new_post import build_front_matter, build_body
+from liquid_render import LiquidRenderer, render_layout, ALLOWED_FILTERS
+from validate_style import validate
 from server import parse_markdown_file, write_markdown_file
+
+WORKSPACE = ROOT
+
+CANONICAL_POST = """---
+layout: post
+title: "A Canonical Post For The Style Validator"
+description: "A description written to sit inside the fifty to one hundred and sixty character bounds the style config declares."
+date: 2026-01-01
+categories:
+  - Backend
+tags:
+  - example
+author: "Saiteja Chada"
+reading_time: "5 min read"
+draft: false
+---
+An opening paragraph that comfortably clears the thirty word floor that the
+structure rules apply before the first heading is allowed to appear.
+
+## Background
+
+Some context for the reader, long enough that the section is not flagged as
+too short by the thirty word minimum in the style configuration file.
+
+> [!NOTE]
+> A callout using one of the configured markers.
+
+## How It Works
+
+```bash
+# A shell comment, not a body heading
+echo hello
+```
+
+## Key Takeaways
+
+- One bullet.
+- Another bullet.
+
+## References
+
+1. [Example](https://example.com/real)
+"""
+
+BROKEN_POST = """---
+layout: post
+title: "Broken"
+description: "short"
+date: 2026-01-02
+draft: true
+author: "x"
+categories:
+  - NotARealCategory
+tags: []
+mystery_key: true
+---
+Body text.
+
+# An H1 in the body
+
+> [!NONSENSE]
+> Unrecognised marker.
+"""
 
 class TestBlogAutomation(unittest.TestCase):
     def setUp(self):
@@ -80,8 +147,8 @@ title: "Implementing Resilient Redis Caching"
 description: "A comprehensive guide on setting up Redis cache strategies, TTL rules, and key expulsion policies in Go."
 date: 2026-08-09
 categories:
-  - Cache
   - Backend
+  - DataStructures
 tags:
   - redis
   - golang
@@ -158,6 +225,345 @@ When deploying a production cache, keep these critical architectural patterns in
         print("WARNINGS GATHERED:", analyzer_strong.warnings)
         self.assertTrue(strong_score >= 90)
         self.assertEqual(len(analyzer_strong.warnings), 0)
+
+    # ------------------------------------------------------------------
+    # The style config is the single source of truth. These tests fail loudly
+    # if the config, the scaffolding or the analyser drifts apart.
+    # ------------------------------------------------------------------
+    def test_style_config_weights_sum_to_one_hundred(self):
+        config = load_config()
+        self.assertEqual(sum(config["rubric"]["weights"].values()), 100)
+        self.assertEqual(config["rubric"]["gate"], 80)
+        for required_key in ("tokens", "images", "structure", "rubric", "author_profile", "navigation"):
+            self.assertIn(required_key, config, "_data/blog_style.yml must define {}".format(required_key))
+
+    def test_quality_scores_are_driven_by_the_config(self):
+        config = load_config()
+        analyzer = BlogQualityAnalyzer(os.path.join(self.test_dir.name, "missing.md"), config)
+        self.assertEqual(analyzer.scores, config["rubric"]["weights"])
+
+    def test_shell_comments_in_fences_are_not_headings(self):
+        temp_filepath = os.path.join(self.test_dir.name, "fence-post.md")
+        content = """---
+layout: post
+title: "Installing a Toolchain With Comments In Fences"
+description: "A post whose bash and python fences contain hash-prefixed comment lines that must not be read as body H1 headings."
+date: 2026-08-09
+categories:
+  - DevTools
+tags:
+  - bash
+author: "Saiteja"
+reading_time: "5 min read"
+draft: false
+---
+""" + "\n".join([
+            "This opening paragraph is deliberately long enough to clear the "
+            "thirty word floor that the structure check applies before the "
+            "first heading appears in the document.",
+            "",
+            "## Setup",
+            "",
+            "Run the installer and then install the dependencies it needs.",
+            "",
+            "```bash",
+            "# Using apt to install the toolchain",
+            "# Add the repository first, then update",
+            "apt-get update && apt-get install -y build-essential",
+            "```",
+            "",
+            "```python",
+            "# Add elements to the collection",
+            "for item in items:",
+            "    total += item",
+            "```",
+            "",
+            "### Verifying",
+            "",
+            "The installer prints a version banner once it finishes writing "
+            "every file into the toolchain directory on this machine.",
+            "",
+            "```bash",
+            "toolchain --version",
+            "```",
+            "",
+            "## Key Takeaways",
+            "",
+            "- Comments inside a fenced block are not document headings.",
+            "- The heading scan is fence aware so shell comments never cost points.",
+            "- Real body headings still resolve to h2 and h3 as the config requires.",
+            "",
+            "## References",
+            "",
+            "1. [GNU Bash Manual](https://www.gnu.org/software/bash/manual/)",
+            "2. [Python Tutorial](https://docs.python.org/3/tutorial/)",
+        ]) + "\n"
+        with open(temp_filepath, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        analyzer = BlogQualityAnalyzer(temp_filepath)
+        analyzer.analyze()
+
+        h1_warnings = [w for w in analyzer.warnings if "H1" in w]
+        self.assertEqual(h1_warnings, [], "hash-prefixed lines inside fences must not be read as H1")
+        self.assertEqual([h[1] for h in analyzer.headings if h[1] == 1], [])
+
+    def test_new_post_scaffolds_from_the_config(self):
+        config = load_config()
+        order = config["structure"]["frontmatter_order"]
+
+        front_matter = build_front_matter(
+            {
+                "layout": "post",
+                "title": "A Config Driven Title",
+                "description": "A description that satisfies the configured length bounds.",
+                "date": "2026-08-09",
+                "categories": ["Backend"],
+                "tags": ["one", "two"],
+                "draft": False,
+            },
+            config,
+        )
+
+        keys = [
+            line.split(":")[0]
+            for line in front_matter.splitlines()
+            if line and not line.startswith("---") and not line.startswith("  - ")
+        ]
+        self.assertEqual(keys, [k for k in order if k in keys])
+        self.assertIn("categories:", front_matter)
+        self.assertIn("  - Backend", front_matter)
+        self.assertIn("draft: false", front_matter)
+
+    def test_new_post_body_uses_the_configured_sections(self):
+        config = load_config()
+        body = build_body(config)
+        configured = [
+            s["heading"] for s in config["structure"]["sections"] if s.get("heading")
+        ]
+        for heading in configured:
+            self.assertIn("## {}".format(heading), body)
+        self.assertIn("## References", body)
+        # The layout owns the single h1, so the body must never emit one.
+        self.assertNotIn("\n# ", body)
+
+    # ------------------------------------------------------------------
+    # The dev server renders the real layouts, so the Liquid subset has to
+    # handle every construct _layouts/ and _includes/ actually use.
+    # ------------------------------------------------------------------
+    def setUpRenderer(self):
+        return LiquidRenderer(WORKSPACE)
+
+    def test_liquid_filters_and_whitespace_control(self):
+        r = self.setUpRenderer()
+        out = r.render(
+            '{%- assign a = "ab" | split: "" -%}'
+            "{%- for c in a -%}[{{ c }}]{%- endfor -%}"
+            '{{ "Hi_There" | replace: "_", "-" | upcase }}',
+            [{"site": {"baseurl": "/blog"}}],
+        )
+        self.assertEqual(out, "[a][b]HI-THERE")
+
+    def test_liquid_hash_iteration_yields_pairs(self):
+        r = self.setUpRenderer()
+        out = r.render(
+            "{%- assign h = site.data -%}{%- for pair in h -%}"
+            "{{ pair[0] }}={{ pair[1] }}{%- unless forloop.last -%},{%- endunless -%}"
+            "{%- endfor -%}",
+            [{"site": {"data": {"a": "1", "b": "2"}}}],
+        )
+        self.assertEqual(out, "a=1,b=2")
+
+    def test_liquid_assign_survives_a_loop(self):
+        # index.html builds its used-category set this way. `assign` inside a
+        # `{% for %}` must write to the outermost scope, and the delimited
+        # string plus `contains` is how the dedup is done without a `push`
+        # filter, which Liquid does not have.
+        r = self.setUpRenderer()
+        out = r.render(
+            '{%- assign used = "|" -%}'
+            "{%- for post in site.posts -%}"
+            "{%- for cat in post.categories -%}"
+            '{%- assign token = "|" | append: cat | append: "|" -%}'
+            "{%- unless used contains token -%}"
+            '{%- assign used = used | append: cat | append: "|" -%}'
+            "{%- endunless -%}"
+            "{%- endfor -%}{%- endfor -%}"
+            "{{ used }}",
+            [{"site": {"posts": [
+                {"categories": ["AI", "Backend"]},
+                {"categories": ["AI", "Security"]},
+            ]}}],
+        )
+        self.assertEqual(out, "|AI|Backend|Security|")
+
+    def test_liquid_contains_guard_rejects_substrings(self):
+        # Without the pipe delimiters, the category "Go" would match inside a
+        # longer name and create a filter tab that leads nowhere.
+        r = self.setUpRenderer()
+        self.assertEqual(
+            r.render('{%- assign used = "|GoLevel|" -%}'
+                     '{%- assign token = "|" | append: "Go" | append: "|" -%}'
+                     "{% if used contains token %}MATCHED{% else %}SAFE{% endif %}", [{}]),
+            "SAFE",
+        )
+        self.assertEqual(
+            r.render('{%- assign used = "|Go|" -%}'
+                     '{%- assign token = "|" | append: "Go" | append: "|" -%}'
+                     "{% if used contains token %}MATCHED{% else %}SAFE{% endif %}", [{}]),
+            "MATCHED",
+        )
+
+    def test_liquid_include_receives_keyword_arguments(self):
+        r = self.setUpRenderer()
+        out = r.render(
+            "{% include share.html %}",
+            [{"site": {"data": {"blog_style": {"navigation": {"share_targets": ["copy"]}}}}}],
+        )
+        self.assertIn('class="share"', out)
+        self.assertIn('data-share-target="copy"', out)
+        self.assertNotIn('data-share-target="x"', out)
+
+    def test_liquid_case_when_selects_one_branch(self):
+        r = self.setUpRenderer()
+        template = "{%- case t -%}{%- when 'a' -%}A{%- when 'b' -%}B{%- else -%}OTHER{%- endcase -%}"
+        for value, expected in (("a", "A"), ("b", "B"), ("z", "OTHER")):
+            self.assertEqual(r.render(template, [{"t": value}]), expected)
+
+    def test_liquid_where_exp_filters_a_collection(self):
+        r = self.setUpRenderer()
+        out = r.render(
+            '{%- assign live = site.posts | where_exp: "p", "p.draft != true" -%}'
+            "{{ live.size }}",
+            [{"site": {"posts": [{"draft": False}, {"draft": True}]}}],
+        )
+        self.assertEqual(out, "1")
+
+    def test_liquid_reports_constructs_it_cannot_render(self):
+        r = self.setUpRenderer()
+        r.render("{% tablerow x in y %}{% endtablerow %}", [{"y": []}])
+        self.assertTrue(r.unsupported, "an unknown tag must be reported, not dropped silently")
+
+    def test_liquid_rejects_filters_liquid_does_not_have(self):
+        # Liquid has no `push` and no `index` filter. Both got into the
+        # templates once and failed silently on the real Jekyll build, so the
+        # renderer refuses anything outside the known set.
+        for name in ("push", "index"):
+            r = self.setUpRenderer()
+            r.render("{{ x | %s: 1 }}" % name, [{"x": [1, 2]}])
+            self.assertTrue(
+                r.unsupported,
+                "the `{}` filter must be reported as unsupported".format(name),
+            )
+
+    def test_templates_only_use_filters_liquid_actually_has(self):
+        """Scan every template for `| filter` and check the allowlist.
+
+        This is the check that would have caught the production bug: a filter
+        that renders fine under scripts/blog/liquid_render.py but does not exist
+        in Shopify Liquid, so the GitHub Pages build fails or silently no-ops.
+        """
+        patterns = [
+            os.path.join(ROOT, "_layouts", name) for name in os.listdir(os.path.join(ROOT, "_layouts"))
+        ] + [
+            os.path.join(ROOT, "_includes", name) for name in os.listdir(os.path.join(ROOT, "_includes"))
+        ] + [os.path.join(ROOT, "index.html")]
+
+        # `| limit: 2` is a for-loop argument, and a bare `|` inside prose is
+        # just a character; only real filter positions are interesting.
+        filter_re = re.compile(r"\|\s*([a-z_][a-z0-9_]*)\s*:")
+        found = {}
+        for path in patterns:
+            if not path.endswith((".html", ".md")):
+                continue
+            with open(path, encoding="utf-8") as handle:
+                source = handle.read()
+            # Drop prose lines and HTML attributes before scanning.
+            source = re.sub(r"<[^>]*>", " ", source)
+            for name in filter_re.findall(source):
+                found.setdefault(name, []).append(os.path.basename(path))
+
+        # for-loop arguments that look like filters but are not
+        loop_args = {"limit", "offset", "reversed", "cols"}
+
+        offenders = {
+            name: files for name, files in found.items()
+            if name not in ALLOWED_FILTERS and name not in loop_args
+        }
+        self.assertEqual(
+            offenders, {},
+            "these filters are not in the standard Shopify Liquid set and would "
+            "break the GitHub Pages build: {}".format(offenders),
+        )
+
+    def test_templates_do_not_use_where_exp(self):
+        # where_exp is Jekyll-only. It works on GitHub Pages but not in a plain
+        # Liquid engine, which is what makes the templates hard to verify.
+        # Draft filtering uses `unless` instead.
+        for base in ("_layouts", "_includes"):
+            directory = os.path.join(ROOT, base)
+            for name in os.listdir(directory):
+                path = os.path.join(directory, name)
+                with open(path, encoding="utf-8") as handle:
+                    self.assertNotIn(
+                        "where_exp", handle.read(),
+                        "{} must not use the Jekyll-only where_exp filter".format(path),
+                    )
+
+    def test_every_layout_and_include_renders_without_leftover_liquid(self):
+        config = load_config()
+        site = {
+            "title": "t", "description": "d", "url": "https://example.com",
+            "baseurl": "/blog", "time": datetime(2026, 1, 1),
+            "data": {"blog_style": config},
+            "posts": [{
+                "title": "A Post", "description": "A description long enough to pass the bounds.",
+                "url": "/blog/a-post", "slug": "a-post", "date": "2026-01-01",
+                "categories": ["Backend"], "tags": ["one"], "draft": False,
+            }],
+        }
+        page = dict(site["posts"][0])
+        page.update({"layout": "post", "author": "Saiteja Chada", "reading_time": "5 min read",
+                     "previous": None, "next": None})
+
+        post_html, unsupported_post = render_layout(WORKSPACE, "post", {"site": site, "page": page}, "<p>Body</p>")
+        final_html, unsupported_default = render_layout(
+            WORKSPACE, "default", {"site": site, "page": page}, post_html
+        )
+
+        self.assertEqual(unsupported_post, [], "post.html uses something the renderer cannot do")
+        self.assertEqual(unsupported_default, [], "default.html uses something the renderer cannot do")
+        self.assertNotRegex(final_html, r"\{%|\{\{")
+
+        for expected in ('id="reading-progress-bar"', 'class="cover-tile',
+                         'id="toc-list"', 'class="toc-mobile"', 'class="author-card"',
+                         'data-share', "--accent:"):
+            self.assertIn(expected, final_html, "post page is missing {}".format(expected))
+
+    # ------------------------------------------------------------------
+    # validate_style.py
+    # ------------------------------------------------------------------
+    def write_post(self, filename, body):
+        path = os.path.join(self.test_dir.name, filename)
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(body)
+        return path
+
+    def test_validate_style_accepts_a_canonical_post(self):
+        path = self.write_post("2026-01-01-canonical.md", CANONICAL_POST)
+        errors, warnings = validate(path, load_config())
+        self.assertEqual(errors, [])
+        self.assertEqual([w for w in warnings if "h4" in w or "h5" in w], [])
+
+    def test_validate_style_flags_structural_problems(self):
+        path = self.write_post("2026-01-02-broken.md", BROKEN_POST)
+        errors, _ = validate(path, load_config())
+        joined = " | ".join(errors)
+        self.assertIn("h1 in the body", joined)
+        self.assertIn("category not in structure.category_enum", joined)
+        self.assertIn("unknown callout marker", joined)
+        self.assertIn("out of order", joined)
+        self.assertIn("unknown front matter key", joined)
 
 if __name__ == "__main__":
     unittest.main()

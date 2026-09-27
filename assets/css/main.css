@@ -69,7 +69,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-::selection { background: #dbeafe; color: var(--text); }
+::selection { background: var(--selection); color: var(--text); }
 
 a {
   color: var(--accent);
@@ -687,7 +687,7 @@ html, body {
 
 @media (min-width: 1024px) {
   .post-container {
-    grid-template-columns: 1.2fr 4.8fr 2fr;
+    grid-template-columns: 2fr 4.8fr 2fr;
     gap: var(--space-xl);
     padding: var(--space-xl) var(--space-lg);
   }
@@ -695,7 +695,7 @@ html, body {
     grid-column: 2;
   }
   .post-sidebar {
-    grid-column: 3;
+    grid-column: 1;
     display: block !important;
     visibility: visible !important;
     position: relative !important;
@@ -1215,3 +1215,518 @@ html, body {
 .delay-1 { animation-delay: 0.05s; }
 .delay-2 { animation-delay: 0.1s; }
 .delay-3 { animation-delay: 0.15s; }
+
+/* =============================================================================
+   COMPONENTS ADDED BY _data/blog_style.yml
+   -----------------------------------------------------------------------------
+   Every value below resolves to a token emitted by _includes/tokens.html.
+   Change the colour or metric in _data/blog_style.yml, not here.
+   ========================================================================== */
+
+/* ---- Reading progress bar (post pages only) ---- */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--progress-height, 2px);
+  z-index: 300;
+  pointer-events: none;
+}
+
+.reading-progress__bar {
+  height: 100%;
+  width: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 0.08s linear;
+}
+
+/* ---- Cover tile ----
+   No image files are committed. The tile is a deterministic 16:9 gradient
+   built from the post's primary category accent plus one of six geometric
+   patterns chosen from the post slug. Same post, same cover, forever. */
+.cover-tile {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--cover-accent, var(--accent)) 0%, #1a1916 100%);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.cover-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.cover-tile[data-variant="0"]::after {
+  background-image: repeating-linear-gradient(45deg, #fff 0 2px, transparent 2px 12px);
+}
+.cover-tile[data-variant="1"]::after {
+  background-image: repeating-radial-gradient(circle at 30% 40%, #fff 0 1.5px, transparent 1.5px 16px);
+}
+.cover-tile[data-variant="2"]::after {
+  background-image: radial-gradient(#fff 1.5px, transparent 1.5px);
+  background-size: 18px 18px;
+}
+.cover-tile[data-variant="3"]::after {
+  background-image:
+    radial-gradient(circle at 78% 28%, #fff 0 22%, transparent 22%),
+    radial-gradient(circle at 20% 76%, #fff 0 13%, transparent 13%);
+}
+.cover-tile[data-variant="4"]::after {
+  background-image:
+    linear-gradient(#fff, #fff), linear-gradient(#fff, #fff), linear-gradient(#fff, #fff);
+  background-size: 7% 34%, 13% 62%, 9% 46%;
+  background-position: 14% 66%, 48% 38%, 79% 54%;
+  background-repeat: no-repeat;
+}
+.cover-tile[data-variant="5"]::after {
+  opacity: 0.1;
+  background-image:
+    linear-gradient(45deg, #fff 25%, transparent 25% 75%, #fff 75%),
+    linear-gradient(45deg, #fff 25%, transparent 25% 75%, #fff 75%);
+  background-size: 22px 22px;
+  background-position: 0 0, 11px 11px;
+}
+
+/* On a card the tile sits flush at the top of the card. */
+.blog-card .cover-tile {
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg)) var(--space-sm);
+  width: calc(100% + 2 * var(--space-lg));
+}
+
+.blog-card.has-cover {
+  padding: 0 0 var(--space-lg);
+  overflow: hidden;
+}
+.blog-card.has-cover .blog-card-meta,
+.blog-card.has-cover .blog-card-title,
+.blog-card.has-cover .blog-card-description,
+.blog-card.has-cover .blog-card-taxonomies {
+  margin-left: var(--space-lg);
+  margin-right: var(--space-lg);
+}
+
+/* ---- Code box ----
+   Frames the existing dark code surface with a header bar carrying the
+   language on the left and a copy button on the right. The horizontal
+   scroll that main.css gave the bare <pre> now happens on .code-box-body. */
+.code-box {
+  margin: var(--space-lg) 0;
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-md);
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.code-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 2.15rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.85rem;
+  background: var(--code-head-bg);
+  border-bottom: 1px solid var(--code-border);
+  box-sizing: border-box;
+}
+
+.code-box-lang {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #7f8ca3;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.copy-code-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: #7f8ca3;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.copy-code-btn:hover {
+  color: #cdd6f4;
+  border-color: var(--code-border);
+}
+
+.copy-code-btn.copied {
+  color: #98c379;
+  border-color: rgba(152, 195, 121, 0.4);
+}
+
+.code-box-body {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.code-box-body > .highlight,
+.code-box-body > .codehilite,
+.code-box-body > pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
+/* ---- Callouts (GitHub Alerts syntax) ---- */
+.callout {
+  margin: var(--space-lg) 0;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--callout-border);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  background: var(--callout-bg);
+  color: var(--callout-text);
+  font-style: normal;
+}
+
+.callout::before {
+  content: attr(data-callout);
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--callout-border);
+}
+
+.callout p { margin-bottom: var(--space-sm); }
+.callout p:last-child { margin-bottom: 0; }
+.callout code {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: var(--callout-border);
+  color: var(--callout-text);
+}
+
+.callout[data-callout="note"] {
+  --callout-border: var(--callout-note-border);
+  --callout-bg: var(--callout-note-bg);
+  --callout-text: var(--callout-note-text);
+}
+.callout[data-callout="tip"] {
+  --callout-border: var(--callout-tip-border);
+  --callout-bg: var(--callout-tip-bg);
+  --callout-text: var(--callout-tip-text);
+}
+.callout[data-callout="warning"] {
+  --callout-border: var(--callout-warning-border);
+  --callout-bg: var(--callout-warning-bg);
+  --callout-text: var(--callout-warning-text);
+}
+.callout[data-callout="important"] {
+  --callout-border: var(--callout-important-border);
+  --callout-bg: var(--callout-important-bg);
+  --callout-text: var(--callout-important-text);
+}
+.callout[data-callout="caution"] {
+  --callout-border: var(--callout-caution-border);
+  --callout-bg: var(--callout-caution-bg);
+  --callout-text: var(--callout-caution-text);
+}
+
+/* A plain blockquote with no alert marker keeps the neutral legacy look. */
+.prose blockquote:not(.callout) {
+  font-style: italic;
+}
+
+/* ---- Share buttons ---- */
+.share {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.share-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--bg-subtle);
+}
+
+/* ---- Post hero cover ---- */
+.post-hero {
+  margin-bottom: var(--space-lg);
+}
+
+/* Taxonomies now sit above the title, so they need space below, not above. */
+.post-header .post-taxonomies { margin-top: 0; margin-bottom: var(--space-md); }
+.post-meta-share { margin-left: auto; }
+
+@media (max-width: 640px) {
+  .post-meta-share { margin-left: 0; }
+}
+
+/* Anchor targets must clear the sticky site header. */
+.prose h2, .prose h3, .prose h4 { scroll-margin-top: 90px; }
+
+/* ---- Table of contents on narrow screens ----
+   The left rail is display:none below 1024px, so the same list is offered as
+   a disclosure above the article instead of being dropped entirely. */
+.toc-mobile {
+  display: none;
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.toc-mobile summary {
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  list-style: none;
+}
+
+.toc-mobile summary::-webkit-details-marker { display: none; }
+.toc-mobile summary::before { content: "\25B8\00a0"; }
+.toc-mobile[open] summary::before { content: "\25BE\00a0"; }
+
+.toc-mobile ul {
+  list-style: none;
+  padding: var(--space-sm) 0 0;
+  margin: 0;
+  border-top: 1px solid var(--border-light);
+  margin-top: var(--space-sm);
+}
+
+.toc-mobile li { margin: 0.2rem 0; }
+.toc-mobile a {
+  display: block;
+  padding: 0.2rem 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.toc-mobile a:hover { color: var(--accent); }
+.toc-mobile .toc-h3 a { padding-left: 0.85rem; font-size: 0.76rem; }
+
+.toc-widget .toc-h3 a { padding-left: 0.75rem; font-size: 0.78rem; }
+
+@media (max-width: 1023px) {
+  .toc-mobile { display: block; }
+  .toc-mobile:empty { display: none; }
+}
+
+/* ---- Author card ---- */
+.author-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin-top: var(--space-2xl);
+  padding: var(--space-lg);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+}
+
+.author-avatar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.author-meta { min-width: 0; }
+
+.author-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.author-role {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 0.15rem;
+}
+
+.author-links {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.author-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.author-link:hover { color: var(--accent); }
+
+/* ---- Previous / Next ---- */
+.post-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-light);
+}
+
+.post-nav-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: var(--space-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  transition: border-color var(--transition), transform var(--transition);
+}
+
+.post-nav-link:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.post-nav-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.post-nav-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post-nav-link--next {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.post-nav-spacer { visibility: hidden; }
+
+/* ---- Series note (only when front matter sets `series`) ---- */
+.series-note {
+  margin-top: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.series-note p { margin-bottom: 0; }
+.series-note a { color: var(--accent); }
+
+/* ---- Figures inside the prose ---- */
+.prose figure { margin: var(--space-lg) 0; }
+
+.prose figure img,
+.prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  background: var(--bg-subtle);
+}
+
+.prose figcaption {
+  margin-top: var(--space-sm);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ---- Badge restyle ----
+   Categories stay accent-tinted because they are the navigational taxonomy;
+   tags drop to a neutral chip. This removes the old green/blue split. */
+.category-badge {
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  border: 1px solid var(--tag-border);
+}
+
+.tag-badge {
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .post-nav { grid-template-columns: 1fr; }
+  .post-nav-link--next { text-align: left; align-items: flex-start; }
+  .author-card { flex-direction: column; }
+}
+

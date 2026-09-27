@@ -1,26 +1,40 @@
-<article class="blog-card">
+{%- comment -%}
+Listing card. The cover tile is generated from the post slug and its primary
+category — see _includes/cover-tile.html and images.cover in
+_data/blog_style.yml. No image files are ever committed.
+{%- endcomment -%}
+{%- assign bs = site.data.blog_style -%}
+{%- assign show_cover = false -%}
+{%- if bs.images.cover.enabled and bs.images.cover.show_on_card -%}
+  {%- assign show_cover = true -%}
+{%- endif -%}
+<article class="blog-card{% if show_cover %} has-cover{% endif %}">
+  {%- if show_cover %}
+  {% include cover-tile.html seed=post.slug cats=post.categories alt=post.title %}
+  {%- endif %}
+
   <div class="blog-card-meta">
     <span class="blog-card-date">{{ post.date | date: "%B %d, %Y" }}</span>
     <span class="meta-divider">&middot;</span>
     <span class="blog-card-read-time">
-      {% if post.reading_time %}{{ post.reading_time }}{% else %}5 min read{% endif %}
+      {{ post.reading_time | default: bs.structure.defaults.reading_time }}
     </span>
   </div>
-  
+
   <h2 class="blog-card-title">
     <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
   </h2>
-  
+
   <p class="blog-card-description">
     {{ post.description | default: post.excerpt | strip_html | truncatewords: 25 }}
   </p>
-  
+
   <div class="blog-card-taxonomies">
     {% for cat in post.categories | limit: 2 %}
       <span class="badge category-badge">{{ cat }}</span>
     {% endfor %}
     {% for tag in post.tags | limit: 3 %}
-      <span class="badge tag-badge">#{{ tag }}</span>
+      <span class="badge tag-badge">{{ tag }}</span>
     {% endfor %}
   </div>
 </article>

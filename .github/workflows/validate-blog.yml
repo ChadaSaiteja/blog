@@ -4,6 +4,14 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
+    paths:
+      - '_data/blog_style.yml'
+      - '_layouts/**'
+      - '_includes/**'
+      - 'scripts/blog/**'
 
 jobs:
   validate:
@@ -24,23 +32,112 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Quality Checks on New/Changed Posts
+      - name: Check the style config is valid
+        run: |
+          python - <<'PY'
+          import sys
+          sys.path.insert(0, "scripts/blog")
+          from quality import load_config
+          from new_post import build_front_matter, build_body
+
+          config = load_config()
+          weights = config["rubric"]["weights"]
+          assert sum(weights.values()) == 100, "rubric weights must total 100"
+          assert config["rubric"]["gate"] > 0
+          for key in ("tokens", "images", "structure", "rubric", "author_profile", "navigation"):
+              assert key in config, "_data/blog_style.yml is missing {}".format(key)
+          # The scaffolding must run without raising.
+          build_front_matter(
+              {"layout": "post", "title": "t", "description": "d",
+               "date": "2026-01-01", "categories": ["Backend"]},
+              config,
+          )
+          build_body(config)
+          print("style config ok")
+          PY
+
+      - name: Check layouts and includes still parse
+        run: |
+          python - <<'PY'
+          import glob
+          import sys
+          sys.path.insert(0, "scripts/blog")
+          from liquid_render import LiquidRenderer
+
+          renderer = LiquidRenderer(".")
+          for path in sorted(glob.glob("_layouts/*.html")) + sorted(glob.glob("_includes/*.html")):
+              with open(path, encoding="utf-8") as handle:
+                  source = handle.read()
+              tokens = renderer._tokenize(source)
+              nodes, _ = renderer._parse(tokens, 0, set())
+              assert nodes is not None, path
+          print("templates parse ok")
+          PY
+
+      - name: Check templates only use filters Liquid actually has
+        run: |
+          # A filter that renders under scripts/blog/liquid_render.py but does
+          # not exist in Shopify Liquid fails silently on GitHub Pages. This
+          # is the check that catches it. See tests/test_blog.py for the
+          # same assertion plus the reasoning.
+          python - <<'PY'
+          import os
+          import re
+          import sys
+          sys.path.insert(0, "scripts/blog")
+          from liquid_render import ALLOWED_FILTERS
+
+          filter_re = re.compile(r"\|\s*([a-z_][a-z0-9_]*)\s*:")
+          loop_args = {"limit", "offset", "reversed", "cols"}
+          found = {}
+          for base in ("_layouts", "_includes"):
+              for name in sorted(os.listdir(base)):
+                  if not name.endswith((".html", ".md")):
+                      continue
+                  with open(os.path.join(base, name), encoding="utf-8") as handle:
+                      source = re.sub(r"<[^>]*>", " ", handle.read())
+                  for match in filter_re.findall(source):
+                      found.setdefault(match, []).append(name)
+          with open("index.html", encoding="utf-8") as handle:
+              source = re.sub(r"<[^>]*>", " ", handle.read())
+          for match in filter_re.findall(source):
+              found.setdefault(match, []).append("index.html")
+
+          offenders = {
+              name: files for name, files in found.items()
+              if name not in ALLOWED_FILTERS and name not in loop_args
+          }
+          if offenders:
+              for name, files in sorted(offenders.items()):
+                  print("  {} used in {}".format(name, ", ".join(files)))
+              sys.exit("These filters are not in the standard Shopify Liquid set.")
+          print("filter portability ok: {}".format(", ".join(sorted(found))))
+          PY
+
+      - name: Run Style Checks on New/Changed Posts
         run: |
           # Identify changed markdown files in _posts/
-          CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep '^_posts/.*\.md$' || true)
+          if [ "${{ github.event_name }}" = "push" ]; then
+            CHANGED_FILES=$(git diff --name-only HEAD^...HEAD | grep '^_posts/.*\.md$' || true)
+          else
+            CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep '^_posts/.*\.md$' || true)
+          fi
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changed blog posts in _posts/ found."
             exit 0
           fi
-          
+
           echo "Validating changed posts:"
           echo "$CHANGED_FILES"
-          
-          # Run the quality checker on each changed file
+
           for file in $CHANGED_FILES; do
             echo "Checking: $file"
-            python scripts/blog/quality.py "$file" 80
+            python scripts/blog/validate_style.py "$file"
+            python scripts/blog/quality.py "$file"
           done
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
