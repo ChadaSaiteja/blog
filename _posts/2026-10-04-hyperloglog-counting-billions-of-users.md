@@ -2,7 +2,7 @@
 layout: post
 title: "HyperLogLog: How Google and Reddit Count Billions of Unique Users Using Just 12 KB"
 description: "A simple, intuitive explanation of the HyperLogLog algorithm — how it works, why it is used over sets and bloom filters, and when you should (and shouldn't) use it."
-date: 2026-08-22
+date: 2026-10-04
 categories:
   - DataStructures
   - Backend
@@ -157,10 +157,10 @@ Redis makes HyperLogLog a first-class citizen with three commands:
 
 ```bash
 # Add elements to the HyperLogLog
-PFADD daily_visitors:2026-08-22 user_001 user_002 user_003
+PFADD daily_visitors:2026-10-04 user_001 user_002 user_003
 
 # Get the estimated unique count
-PFCOUNT daily_visitors:2026-08-22
+PFCOUNT daily_visitors:2026-10-04
 # → (integer) 3
 
 # Merge multiple HLLs (e.g., get monthly uniques from daily HLLs)
