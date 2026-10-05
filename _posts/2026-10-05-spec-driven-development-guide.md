@@ -182,16 +182,16 @@ Spec Kit also includes specialized workflows for common tasks:
 
 | Work size | Steps |
 |---|---|
-| **Large feature** | `specify` $\rightarrow$ `clarify` $\rightarrow$ `plan` $\rightarrow$ `checklist` $\rightarrow$ `tasks` $\rightarrow$ `analyze` $\rightarrow$ `implement` $\rightarrow$ `converge` |
-| **Small feature** | `specify` $\rightarrow$ `clarify` $\rightarrow$ `plan` $\rightarrow$ `tasks` $\rightarrow$ `implement` |
-| **Tiny change** | `specify` $\rightarrow$ `implement` |
+| **Large feature** | `specify` → `clarify` → `plan` → `checklist` → `tasks` → `analyze` → `implement` → `converge` |
+| **Small feature** | `specify` → `clarify` → `plan` → `tasks` → `implement` |
+| **Tiny change** | `specify` → `implement` |
 
 ### Full Implementation Checklist
 
 1. **Setup**: Install `specify-cli`, initialize with `--integration <key>`, and set your `constitution`.
-2. **Feature Start**: Run `specify` $\rightarrow$ `clarify` $\rightarrow$ `plan`.
-3. **Verification**: Run `tasks` $\rightarrow$ `analyze` $\rightarrow$ `implement`.
-4. **Closing the Loop**: Run `converge`. If tasks are added, repeat `implement` $\rightarrow$ `converge`.
+2. **Feature Start**: Run `specify` → `clarify` → `plan`.
+3. **Verification**: Run `tasks` → `analyze` → `implement`.
+4. **Closing the Loop**: Run `converge`. If tasks are added, repeat `implement` → `converge`.
 5. **Shipping**: Review code and spec files together, then open a PR.
 
 ## Gotchas and Trade-offs
