@@ -11,7 +11,7 @@ tags:
   - Spec-Kit
   - Software Engineering
 author: "Saiteja Chada"
-reading_time: "12 min read"
+reading_time: "15 min read"
 ---
 
 Most developers treat AI agents like magic oracles, providing a vague prompt and hoping the resulting code aligns with their vision. This "prompt-and-pray" approach leads to hallucinations, architectural drift, and endless cycles of manual fixing. But what if you could flip the script: what if you defined the *what* and the *why* upfront, and let the AI handle the *how* under strict, verifiable constraints?
@@ -37,100 +37,178 @@ GitHub Spec Kit is an open-source (MIT) toolkit that brings this tiered workflow
 
 The workflow follows a logical progression of quality gates. While you can skip some steps for tiny changes, a robust feature implementation typically follows this path:
 
-1. **`constitution`**: Establish the foundational rules of your project.
-2. **`specify`**: Write the high-level feature specification.
-3. **`clarify`** (Optional): Use the AI to ask clarifying questions to remove ambiguity.
-4. **`plan`**: Create a technical implementation plan that fits your existing architecture.
-5. **`checklist`** (Optional): Generate a set of requirements-based unit tests.
-6. **`tasks`**: Convert the plan into an ordered list of atomic tasks.
-7. **`analyze`** (Optional): Run a consistency check across the spec, plan, and tasks.
-8. **`implement`**: Execute the tasks.
-9. **`converge`**: Verify the implementation against the original spec.
+| Step | Purpose |
+|---|---|
+| `constitution` | Project rules the AI must always follow (once per project) |
+| `specify` | Write the feature spec (what + why) |
+| `clarify` | AI asks questions to remove ambiguity (optional) |
+| `plan` | Technical plan: how it fits your existing code |
+| `checklist` | "Unit tests for your requirements" (optional) |
+| `tasks` | Ordered task list |
+| `analyze` | Consistency check across spec, plan, tasks (optional) |
+| `implement` | AI writes the code |
+| `converge` | Verify code against the spec; repeat until done |
 
-[!TIP]
 Only `specify` is strictly required before moving to `plan`. The other steps act as optional quality gates to ensure higher confidence.
-
-### The GitHub Spec Kit Toolkit
-
-The toolkit is centered around the `specify` CLI. It manages your project's "memory" (like the `constitution.md`) and provides the bridge to your AI agent. It supports a wide variety of integrations, from GitHub Copilot and Claude Code to Cursor and Gemini.
 
 ## Deep Dive
 
 ### Setting Up Spec Kit
 
-The setup process differs slightly depending on whether you are starting a new project or adopting the workflow in an existing repository.
+#### Prerequisites
 
-#### Adopting an Existing Codebase
+Before you begin, ensure you have the following:
+- **Python 3.11+**
+- [**uv**](https://docs.astral.sh/uv/) (Python package tool)
+- **Git**
+- One supported AI coding agent (GitHub Copilot, Claude Code, Codex, Gemini CLI, Cursor, etc.)
 
-You do not need to document your entire system first. You can initialize Spec Kit inside your existing repo and apply it to the next bounded change.
+#### Installing the CLI
 
-1. **Create a baseline**: Create a new Git branch to ensure all Spec Kit additions are visible in your next pull request.
-2. **Initialize**: Use the following command to install the kit into your current directory:
+Install the `specify` CLI using `uv`:
+
+```bash
+uv tool install specify-cli
+specify version      # confirm it works
+```
+
+To pin a specific release instead:
+```bash
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git@vX.Y.Z
+```
+
+#### Integrating with Your Existing Codebase
+
+You do **not** need to document your whole system first. You initialize Spec Kit inside your repo and use it for the **next bounded change**.
+
+1. **Create a safe baseline**: 
+   ```bash
+   git checkout -b adopt-spec-kit
+   ```
+2. **Initialize in place**:
    ```bash
    specify init --here --force --integration copilot
    ```
-   *Note: The `--force` flag allows initialization in a non-empty folder but may replace files at conflicting managed paths, so always use a clean branch.*
-3. **Commit**: Add the new `.specify/` directory and the agent's skill folder to your repository.
+   *Note: `--force` allows initialization in a non-empty folder, but it can replace files at conflicting managed paths.*
+3. **Review the diff**: Spec Kit adds a `.specify/` directory for memory and templates, and an `<agent folder>/` for your agent's skills.
+4. **Commit and Launch**: Commit the changes and open your agent (Copilot, Claude Code, etc.) **inside this folder**.
 
-#### Starting a Brand-New Project
+#### Starting a Brand-New Repository
 
-When starting from scratch, you define the tech stack during the `plan` phase, as the AI has no existing code to reference.
+When there is no code yet, you decide the tech stack in the `plan` step.
 
 1. **Initialize**:
    ```bash
-   specify init my-new-project --integration claude
-   cd my-new-project
+   specify init my-project --integration copilot
+   cd my-project
    ```
-2. **Add Git support**: You can use the built-in extension to manage your version control:
+2. **Set up Git**:
    ```bash
    specify extension add git
    ```
 
-### Connecting Your AI Agent
-
-The power of Spec Kit lies in how it communicates with your agent. Once initialized, you don't run these commands in your terminal; you type them directly into your agent's chat interface.
-
-| Agent | Key | Command Prefix |
+| | New repository | Existing repository |
 |---|---|---|
-| GitHub Copilot | `copilot` | `/speckit-` |
-| Claude Code | `claude` | `/speckit-` |
-| Codex CLI | `codex` | `$speckit-` |
-| Gemini CLI | `gemini` | `/speckit.` |
-| Cursor | `cursor-agent` | `/speckit-` |
+| **Init command** | `specify init my-project --integration <key>` | `specify init --here --force --integration <key>` |
+| **Before init** | Nothing needed | Create a branch, commit or stash work |
+| **Constitution** | Choose new principles freely | Use only rules already true for the repo |
+| **`plan` input** | **You choose** the tech stack | Tell the AI to **reuse** existing architecture |
+| **Spec focus** | Whole app or first feature | One bounded change, with "do not break" rules |
 
-### A Worked Example: Adding Scheduled Orders
+### Connecting to AI Agents
 
-Imagine you are working on an existing e-commerce application and need to add a "scheduled orders" feature. Here is how the workflow looks in practice:
+Pick the integration key when you run `specify init`. The commands are then called directly in your agent's chat.
 
-**Step 1: The Specification**
-You tell the agent: `/speckit-specify Add scheduled order support. Customers can choose a future date...`
+| Agent | Key | Where commands are installed | How you call a command |
+|---|---|---|---|
+| GitHub Copilot | `copilot` | `.github/skills/` | `/speckit-specify` |
+| Claude Code | `claude` | `.claude/skills/` | `/speckit-specify` |
+| Codex CLI | `codex` | `.agents/skills/` | `$speckit-specify` |
+| Gemini CLI | `gemini` | `.gemini/commands/` | `/speckit.specify` |
+| Cursor | `cursor-agent` | `.cursor/skills/` | `/speckit-specify` |
 
-**Step 2: The Plan**
-Instead of letting the AI guess, you guide it: `/speckit-plan Reuse the existing OrderService and scheduler. Add a scheduledAt field to the Order model.`
+> [!NOTE]
+> The spelling differs by agent (e.g., `/`, `$`, or `.`). Use the form your agent shows when you type the prefix.
 
-**Step 3: Implementation and Convergence**
-After the agent writes the code via `/speckit-implement`, you run the most critical command:
-`/speckit-converge`
+### Command Reference
 
-The agent compares the code against the `spec.md` and `plan.md`. If it finds a gap—for example, if the spec requires a 30-day limit but the code doesn't enforce it—it will not say "Converged." Instead, it will append a new task to `tasks.md`. You then implement that task and run `converge` again until the state is clean.
+Here is a breakdown of the core commands you will use in your agent's chat.
+
+#### `/speckit-constitution`
+Sets the rules the AI must follow (e.g., "Follow existing service boundaries"). Output: `.specify/memory/constitution.md`.
+
+#### `/speckit-specify`
+Describe **what** you want and what must **not** break. No tech stack here. Output: `spec.md`.
+
+#### `/speckit-clarify` (Optional)
+The AI asks up to five questions about gaps. You answer them, and these are written back into `spec.md`.
+
+#### `/speckit-plan`
+This is where tech details go. The AI studies your **existing code** to decide where the feature belongs.
+
+#### `/speckit-checklist` (Optional)
+Generates a "unit test" for your requirements. It checks if the **spec** is complete, not the code.
+
+#### `/speckit-tasks`
+Creates an ordered `tasks.md` file (e.g., `T001 Add field to model`, `T002 Update API`).
+
+#### `/speckit-analyze` (Optional)
+A read-only check to ensure `spec.md`, `plan.md`, and `tasks.md` are consistent.
+
+#### `/speckit-implement`
+The AI executes the tasks. For large features, you can run this in stages (e.g., "Implement only the foundational phases").
+
+#### `/speckit-converge`
+The most critical step. It compares the finished code with the spec and plan. It either reports **Converged** or **appends new tasks** to `tasks.md` for the gaps. Repeat until clean.
+
+#### `/speckit-taskstoissues` (Optional)
+Turns `tasks.md` into GitHub issues (requires GitHub MCP tool access).
+
+### Extensions
+
+Spec Kit also includes specialized workflows for common tasks:
+
+- **Bug Fixing**: 
+  ```text
+  /speckit-bug-assess "Description of bug"
+  /speckit-bug-fix slug=bug-id
+  /speckit-bug-test slug=bug-id
+  ```
+- **Idea Assessment**: Use `specify extension add assess` to evaluate ideas before building.
+
+## Practical Guide
+
+### Which Steps to Use?
+
+| Work size | Steps |
+|---|---|
+| **Large feature** | `specify` $\rightarrow$ `clarify` $\rightarrow$ `plan` $\rightarrow$ `checklist` $\rightarrow$ `tasks` $\rightarrow$ `analyze` $\rightarrow$ `implement` $\rightarrow$ `converge` |
+| **Small feature** | `specify` $\rightarrow$ `clarify` $\rightarrow$ `plan` $\rightarrow$ `tasks` $\rightarrow$ `implement` |
+| **Tiny change** | `specify` $\rightarrow$ `implement` |
+
+### Full Implementation Checklist
+
+1. **Setup**: Install `specify-cli`, initialize with `--integration <key>`, and set your `constitution`.
+2. **Feature Start**: Run `specify` $\rightarrow$ `clarify` $\rightarrow$ `plan`.
+3. **Verification**: Run `tasks` $\rightarrow$ `analyze` $\rightarrow$ `implement`.
+4. **Closing the Loop**: Run `converge`. If tasks are added, repeat `implement` $\rightarrow$ `converge`.
+5. **Shipping**: Review code and spec files together, then open a PR.
 
 ## Gotchas and Trade-offs
 
-While SDD significantly increases reliability, there are trade-offs to consider:
-
-* **Increased Overhead**: For trivial changes (like fixing a typo or a single line of CSS), the full SDD lifecycle is overkill. Use a "Tiny change" workflow: `specify` $\rightarrow$ `implement`.
-* **Maintenance of Specs**: As your project evolves, your specs may become stale. You must decide whether to treat `spec.md` as a living document or a historical record for each feature.
-* **Agent-Specific Syntax**: Note that the prefix for commands varies (e.g., `/` vs `$`). Always check your agent's documentation or type `/` to see the available tools.
+* **Increased Overhead**: For trivial changes, the full cycle is overkill. Use the "Tiny change" workflow.
+* **Maintenance**: Spec files can age. Decide if they are living documents or historical records.
+* **Command Syntax**: Always verify if your agent uses `/`, `$`, or `.` prefixes.
 
 [!IMPORTANT]
-Always run one command at a time. Review the AI's output at every stage before proceeding to the next. The strength of SDD is in the human-in-the-loop verification at every gate.
+Always run one command at a time. Review the AI's output at every stage before proceeding. The strength of SDD is in the human-in-the-loop verification at every gate.
 
 ## Key Takeaways
 
-* **Shift Left**: Move decision-making from the "implementation" phase to the "specification" phase.
-* **Verifiable Intent**: Use the `converge` command to ensure the code actually does what the spec requires.
-* **Architecture First**: Use the `plan` step to ensure AI-generated code respects your existing design patterns and libraries.
-* **Version Controlled Wisdom**: Store your specs, plans, and constitutions in Git to build a searchable knowledge base for your codebase.
+* **Shift Left**: Move decisions from implementation to specification.
+* **Verifiable Intent**: Use `converge` to ensure code matches the spec.
+* **Architecture First**: Use `plan` to ensure the AI respects your existing design.
+* **Version Controlled Wisdom**: Store your specs in Git to build a knowledge base.
 
 ## References
 
