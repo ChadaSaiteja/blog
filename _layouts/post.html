@@ -100,10 +100,16 @@ layout: default
     renders a real anchor list, which gives crawlers a second route into the
     archive and readers a next step.
 
-    Portable Liquid only, no `push` / `where_exp`, for the same reason as
-    index.html: scripts/blog/liquid_render.py renders this in a plain Liquid
-    engine. So the matches are accumulated into one delimited string and split
-    back out, and `~` is the url/title separator inside each entry.
+    Portable Liquid only, for the same reason as index.html:
+    scripts/blog/liquid_render.py renders this in a plain Liquid engine, and
+    Jekyll's expression-based form of `where` is not available there. So the
+    matches are accumulated into one delimited string and split back out, and
+    `~` is the url/title separator inside each entry.
+
+    That filter is referred to in prose rather than written out on purpose: a
+    guard test in tests/test_blog.py greps every file in _layouts and _includes
+    for that filter's literal name, comments included, so spelling it out here
+    fails the build on its own. Keep this note if you rework the comment.
     {%- endcomment -%}
     {%- if nav.show_related_posts -%}
       {%- assign rel_limit = nav.related_post_limit | default: 3 -%}

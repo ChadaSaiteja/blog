@@ -26,8 +26,11 @@ scripts/blog/liquid_render.py does not implement it, so a capture-based version
 cannot be verified by the repo's own preview renderer and silently renders empty
 there. Inline keeps this file checkable by the tooling that already exists.
 
-PORTABILITY: no `push` and no `where_exp`, because that same preview renderer
-parses these templates in a plain Liquid engine.
+PORTABILITY: no `push`, and none of Jekyll's expression-based filters such as the
+expression form of `where`, because that same preview renderer parses these
+templates in a plain Liquid engine. The expression filter is referred to in prose
+rather than written out because a test greps this directory for its literal name,
+comments included.
 {%- endcomment -%}
 
 {%- assign author = site.author -%}
