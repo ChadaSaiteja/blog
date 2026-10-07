@@ -15,6 +15,7 @@ tags:
   - terminal
 author: "Saiteja Chada"
 reading_time: "5 min read"
+image: "/assets/og/free-ai-opencode-cloudflare.png"
 keywords: "opencode, cloudflare workers ai, free llm, local ai model, gemma, terminal ai"
 draft: false
 ---

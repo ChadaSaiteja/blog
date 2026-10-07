@@ -16,6 +16,7 @@ tags:
   - system-design
 author: "Saiteja Chada"
 reading_time: "8 min read"
+image: "/assets/og/hyperloglog-counting-billions-of-users.png"
 keywords: "hyperloglog, cardinality estimation, probabilistic data structures, redis, bloom filter"
 draft: false
 ---

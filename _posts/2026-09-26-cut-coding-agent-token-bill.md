@@ -20,6 +20,7 @@ tags:
   - cost-optimization
 author: "Saiteja Chada"
 reading_time: "8 min read"
+image: "/assets/og/cut-coding-agent-token-bill.png"
 keywords: "llm token cost, ai agent optimization, claude code, codex, context engineering"
 draft: false
 ---

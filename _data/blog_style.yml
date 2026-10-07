@@ -179,6 +179,7 @@ structure:
     - series
     - keywords
     - faq
+    - howto
     - draft
 
   required: [title, description, date, categories]
@@ -188,7 +189,10 @@ structure:
   # keywords   -> comma-separated synonyms, emitted as <meta name="keywords">.
   # faq        -> list of {q, a}. Rendered as a visible FAQ section AND as
   #               FAQPage JSON-LD, which is the AEO win.
-  optional: [seo_title, updated, tags, author, reading_time, cover, image, series, keywords, faq, draft]
+  # howto      -> {name, description, totalTime, steps: [{name, text, url}]}.
+  #               Rendered as HowTo JSON-LD. A post that documents a procedure
+  #               should declare it here so the schema matches the prose.
+  optional: [seo_title, updated, tags, author, reading_time, cover, image, series, keywords, faq, howto, draft]
 
   defaults:
     layout: post

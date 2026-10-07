@@ -35,6 +35,15 @@ comments included.
 
 {%- assign author = site.author -%}
 {%- assign home_url = site.url | append: site.baseurl | append: '/' -%}
+{%- comment -%}
+The Person entity is anchored to the About page, not the blog index. An entity's
+canonical URL should be the page that is about it, so that the page and the
+schema node agree and an AI engine has one unambiguous place to attribute the
+author. Anchoring it to the index made "Saiteja Chada" resolve to a list of
+articles rather than a person.
+{%- endcomment -%}
+{%- assign person_url = site.url | append: site.baseurl | append: '/about/' -%}
+{%- assign person_id = person_url | append: '#person' -%}
 {%- assign canonical_url = page.url | absolute_url -%}
 
 {%- comment -%}
@@ -77,6 +86,8 @@ a valid meta tag. Truncated to 158 to stay inside the SERP snippet.
 {%- assign post_author = page.author | default: author.name -%}
 {%- assign is_post = false -%}
 {%- if page.layout == 'post' -%}{%- assign is_post = true -%}{%- endif -%}
+{%- assign has_howto = false -%}
+{%- if page.howto and page.howto != empty -%}{%- assign has_howto = true -%}{%- endif -%}
 
 <title>{{ seo_title | escape }}</title>
 <meta name="description" content="{{ seo_description | escape }}">
@@ -145,9 +156,9 @@ One source, so the structured data cannot drift from the visible page.
   "@graph": [
     {
       "@type": "Person",
-      "@id": "{{ home_url }}#person",
+      "@id": "{{ person_id }}",
       "name": {{ author.name | jsonify }},
-      "url": {{ home_url | jsonify }},
+      "url": {{ person_url | jsonify }},
       "description": {{ author.role | jsonify }},
       {%- if social_image_url %}
       "image": {{ social_image_url | jsonify }},
@@ -165,7 +176,7 @@ One source, so the structured data cannot drift from the visible page.
       "name": {{ site.title | jsonify }},
       "description": {{ site.description | jsonify }},
       "inLanguage": "en-US",
-      "publisher": { "@id": "{{ home_url }}#person" }
+      "publisher": { "@id": "{{ person_id }}" }
     }
     {%- if is_post %},
     {
@@ -181,9 +192,9 @@ One source, so the structured data cannot drift from the visible page.
       "author": {
         "@type": "Person",
         "name": {{ post_author | jsonify }},
-        "url": "{{ home_url }}#person"
+        "url": "{{ person_id }}"
       },
-      "publisher": { "@id": "{{ home_url }}#person" },
+      "publisher": { "@id": "{{ person_id }}" },
       "isPartOf": { "@id": "{{ home_url }}#website" },
       {%- if social_image_url %}
       "image": [ {{ social_image_url | jsonify }} ],
@@ -227,6 +238,40 @@ One source, so the structured data cannot drift from the visible page.
         {%- endfor %}
       ]
     }
+    {%- endif %}
+    {%- comment -%}
+    HowTo.
+
+    Emitted only when the post declares a `howto:` block. Like FAQPage this is
+    driven by the same front matter the prose is written from, so the structured
+    data cannot end up describing steps the article does not contain.
+
+    `text` carries the command line rather than a bare step name, because that is
+    what a reader actually types and what an answer engine can quote usefully.
+    {%- endcomment -%}
+    {%- if has_howto %},
+    {
+      "@type": "HowTo",
+      "@id": "{{ canonical_url }}#howto",
+      "name": {{ page.howto.name | strip_html | jsonify }},
+      "description": {{ page.howto.description | strip_html | squish | jsonify }},
+      "inLanguage": "en-US",
+      "totalTime": {% if page.howto.totalTime %}{{ page.howto.totalTime | jsonify }}{% else %}"PT30M"{% endif %},
+      "step": [
+        {%- for step in page.howto.steps %}
+        {
+          "@type": "HowToStep",
+          "position": {{ forloop.index }},
+          "name": {{ step.name | strip_html | jsonify }},
+          "text": {{ step.text | strip_html | squish | jsonify }}
+          {%- if step.url %},
+          "url": {{ step.url | jsonify }}
+          {%- endif %}
+        }{%- unless forloop.last %},{% endunless -%}
+        {%- endfor %}
+      ]
+    }
+    {%- endif %}
     {%- endif %}
   ]
 }

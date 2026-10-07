@@ -15,6 +15,7 @@ tags:
   - Software Engineering
 author: "Saiteja Chada"
 reading_time: "16 min read"
+image: "/assets/og/spec-driven-development-guide.png"
 keywords: "spec driven development, github spec kit, specify cli, ai coding agent, agentic sdd, speckit"
 faq:
   - q: "What is Spec-Driven Development?"
@@ -29,6 +30,29 @@ faq:
     a: "The specify command writes what and why: user-visible behaviour, goals, and what must not break. The plan command writes how: the tech choices, which existing services to reuse, and where the change belongs in your architecture."
   - q: "What does /speckit-converge do?"
     a: "Converge compares the finished code against the spec, the plan and the task list. It never edits code. It either reports Converged, or it appends new tasks to tasks.md describing the gaps, so you can implement them and run it again."
+howto:
+  name: "Run one feature through the Spec-Driven Development workflow"
+  description: "Install GitHub Spec Kit, write a feature spec, plan it against your existing code, and implement it with a convergence loop that checks the finished code against the spec."
+  totalTime: "PT30M"
+  steps:
+    - name: "Install the CLI"
+      text: "Run uv tool install specify-cli, then confirm it with specify version."
+    - name: "Initialize in your repository"
+      text: "In an existing repo run specify init --here --force --integration copilot. For a new project run specify init my-project --integration copilot."
+    - name: "Set the project constitution once"
+      text: "Run /speckit-constitution with rules that are already true for the repository, such as preserving public API compatibility and following existing service boundaries."
+    - name: "Write the feature spec"
+      text: "Run /speckit-specify and describe what the feature does, why it exists, and what must not break. Leave the tech stack out of this step."
+    - name: "Close the gaps"
+      text: "Run /speckit-clarify and answer the questions. These are product decisions and your answers are written back into spec.md."
+    - name: "Plan it against your existing code"
+      text: "Run /speckit-plan and tell the agent which existing services to reuse. Confirm the plan matches your current architecture and test style."
+    - name: "Break the plan into tasks"
+      text: "Run /speckit-tasks to produce an ordered tasks.md, then run /speckit-analyze to check the spec, plan and tasks agree."
+    - name: "Implement the tasks"
+      text: "Run /speckit-implement. For a large feature, name the phases to implement and ask it to stop before the rest."
+    - name: "Converge against the spec"
+      text: "Run /speckit-converge. If it appends new tasks to tasks.md instead of reporting Converged, run /speckit-implement again and repeat until it reports Converged."
 ---
 
 Most developers hand an AI agent a one-line prompt and hope the code comes out
@@ -69,7 +93,7 @@ Three concrete benefits follow from that:
 **GitHub Spec Kit** is the free, MIT-licensed toolkit that makes this repeatable.
 It installs a CLI called `specify` and adds ready-made commands to your agent.
 
-## The Spec-Driven Development Workflow
+## What Is the Spec-Driven Development Workflow?
 
 The workflow is a chain of quality gates. Only the first two are load-bearing;
 the rest exist to catch mistakes before they turn into code.
@@ -511,7 +535,7 @@ where the agent decides **where the feature belongs** in a system that already
 exists, and skipping it is the most common way SDD turns into an expensive code
 generator.
 
-## A Complete Setup and Shipping Checklist
+## What Does a Complete Setup and Shipping Checklist Look Like?
 
 One-time setup:
 
@@ -538,7 +562,7 @@ Then, for every feature:
    Converged.
 9. Review the code and the spec files together, then open a pull request.
 
-## Other Processes Included
+## What Other Processes Does Spec Kit Include?
 
 Spec Kit ships optional extensions for adjacent jobs, added only when you need
 them:
@@ -559,7 +583,7 @@ The bug workflow carries a slug so the three stages refer to the same report:
 The `assess` extension is the one to reach for when you are not yet sure a feature
 is worth specifying. Run it before `specify`, not after.
 
-## Gotchas and Trade-offs
+## What Are the Gotchas and Trade-offs?
 
 Spec-Driven Development is a real improvement over prompt-and-pray, but it is not
 free, and it has failure modes worth knowing before you rely on it.

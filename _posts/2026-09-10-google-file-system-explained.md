@@ -16,6 +16,7 @@ tags:
   - file-systems
 author: "Saiteja Chada"
 reading_time: "9 min read"
+image: "/assets/og/google-file-system-explained.png"
 keywords: "google file system, gfs, hdfs, distributed file system, replication, chunking"
 draft: false
 ---

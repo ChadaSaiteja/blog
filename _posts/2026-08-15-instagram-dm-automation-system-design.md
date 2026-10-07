@@ -17,6 +17,7 @@ tags:
   - architecture
 author: "Saiteja Chada"
 reading_time: "15 min read"
+image: "/assets/og/instagram-dm-automation-system-design.png"
 keywords: "system design, instagram api, webhooks, rate limiting, event driven architecture, redis"
 draft: false
 ---

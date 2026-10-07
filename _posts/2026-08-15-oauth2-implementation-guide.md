@@ -15,6 +15,7 @@ tags:
   - architecture
 author: "Saiteja Chada"
 reading_time: "10 min read"
+image: "/assets/og/oauth2-implementation-guide.png"
 keywords: "oauth 2.0, pkce, authorization code flow, token storage, authentication"
 draft: false
 ---

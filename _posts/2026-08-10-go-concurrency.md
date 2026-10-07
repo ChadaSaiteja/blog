@@ -12,6 +12,7 @@ tags:
   - backend
   - patterns
 author: "Saiteja Chada"
+image: "/assets/og/go-concurrency.png"
 keywords: "go concurrency, golang goroutines, channels, select statement, worker pool"
 draft: false
 ---
