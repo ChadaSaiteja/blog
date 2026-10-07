@@ -38,9 +38,18 @@ parses these templates in a plain Liquid engine.
 Title. `seo_title` in front matter is the SERP control: it lets the visible
 <h1> stay a readable length while the <title> stays inside the ~60 character
 window Google actually renders.
+
+The brand is appended to `seo_title` only when the combined length still fits in
+60 characters. That keeps the brand in the SERP title where it earns recognition,
+without silently pushing the meaningful words into a truncation.
 {%- endcomment -%}
 {%- if page.seo_title -%}
-  {%- assign seo_title = page.seo_title -%}
+  {%- assign seo_title_branded = page.seo_title | append: ' | ' | append: site.title -%}
+  {%- if seo_title_branded.size <= 60 -%}
+    {%- assign seo_title = seo_title_branded -%}
+  {%- else -%}
+    {%- assign seo_title = page.seo_title -%}
+  {%- endif -%}
 {%- elsif page.title -%}
   {%- assign seo_title = page.title | append: ' | ' | append: site.title -%}
 {%- else -%}
