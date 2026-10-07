@@ -1,6 +1,28 @@
 title: "Saiteja's Dev Blog"
 description: "A technical blog about backend systems, distributed architectures, and software engineering."
 url: "https://chadasaiteja.github.io"
+lang: "en"
+
+# The author entity. This is what the Person JSON-LD in _includes/head-seo.html
+# is built from, so it doubles as the E-E-A-T signal for the whole site.
+# `sameAs` is the important part: it ties this site to the GitHub and LinkedIn
+# profiles so AI engines can resolve the entity rather than guessing.
+author:
+  name: "Saiteja Chada"
+  role: "Backend engineer working on distributed systems and developer tooling."
+  initials: "SC"
+  sameAs:
+    - "https://github.com/chadasaiteja"
+    - "https://www.linkedin.com/in/chada-saiteja/"
+
+# Social / site-level metadata used by Open Graph and Twitter cards.
+social:
+  twitter: "chadasaiteja"
+  image: "/assets/og-default.png"
+
+# Absolute URL of a default social card. Individual posts can override this
+# with an `image:` key in their front matter.
+image: "/assets/og-default.png"
 
 # IMPORTANT: Set this to match your GitHub repo name
 # e.g. if repo is github.com/chadasaiteja/blog → baseurl: "/blog"
@@ -25,9 +47,19 @@ kramdown:
     css_class: 'highlight'
 
 # GitHub Pages plugins
+#
+# jekyll-sitemap generates /blog/sitemap.xml from every post automatically.
+# This replaces the hand-maintained sitemap that was previously absent, which
+# left search engines with no way to discover posts beyond the index page.
+#
+# jekyll-seo-tag was removed. It was listed here but never called: it injects
+# nothing unless a `{% seo %}` tag is placed in <head>, and _layouts/default.html
+# hardcoded its own <title> and <meta name="description"> instead. _includes/
+# head-seo.html now emits the title, description, canonical, Open Graph, Twitter
+# card and JSON-LD explicitly, so nothing depends on an uncalled plugin.
 plugins:
   - jekyll-feed
-  - jekyll-seo-tag
+  - jekyll-sitemap
 
 # Sass configuration
 sass:

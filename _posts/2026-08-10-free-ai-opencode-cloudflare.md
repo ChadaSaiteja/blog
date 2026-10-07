@@ -1,7 +1,8 @@
 ---
 layout: post
 title: "Running Free AI Coding Models in Your Terminal with OpenCode & Cloudflare"
-description: "A complete step-by-step setup guide to connect OpenCode CLI with Cloudflare Workers AI using the free 10,000 Neurons/day quota."
+seo_title: "OpenCode + Cloudflare Free AI Models"
+description: "Run free AI coding models in your terminal. Connect OpenCode CLI to Cloudflare Workers AI using the free 10,000 Neurons per day quota, step by step."
 date: 2026-08-10
 categories:
   - AI
@@ -14,6 +15,7 @@ tags:
   - terminal
 author: "Saiteja Chada"
 reading_time: "5 min read"
+keywords: "opencode, cloudflare workers ai, free llm, local ai model, gemma, terminal ai"
 draft: false
 ---
 
@@ -121,3 +123,16 @@ To get maximum coding value out of your 10,000 daily free Neurons:
 ## Summary
 
 Combining OpenCode with Cloudflare Workers AI gives you a terminal-native AI coding environment powered by open models like Gemma—100% free with **10,000 free Neurons every day**.
+
+---
+
+## References
+
+- [OpenCode documentation](https://opencode.ai/docs/) — configuration reference for
+  custom providers, including the OpenAI-compatible endpoint shape Workers AI exposes.
+- [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) — platform
+  overview and the models available on the free tier.
+- [Workers AI pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/) —
+  how Neurons are metered, which is what makes the daily free allowance meaningful.
+- [Workers AI models](https://developers.cloudflare.com/workers-ai/models/) — the
+  open-weight models and their context limits.

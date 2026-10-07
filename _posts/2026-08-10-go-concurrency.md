@@ -1,7 +1,8 @@
 ---
 layout: post
 title: "Mastering Go Concurrency Patterns"
-description: "A deep dive into Go channels, select blocks, and worker pools for highly concurrent programs."
+seo_title: "Mastering Go Concurrency Patterns"
+description: "A deep dive into Go concurrency patterns: channels, select blocks, and worker pools for writing highly concurrent programs without data races."
 date: 2026-08-10
 categories:
   - Go
@@ -10,7 +11,8 @@ tags:
   - golang
   - backend
   - patterns
-author: "Saiteja"
+author: "Saiteja Chada"
+keywords: "go concurrency, golang goroutines, channels, select statement, worker pool"
 draft: false
 ---
 

@@ -1,7 +1,8 @@
 ---
 layout: post
 title: "HyperLogLog: How Google and Reddit Count Billions of Unique Users Using Just 12 KB"
-description: "A simple, intuitive explanation of the HyperLogLog algorithm — how it works, why it is used over sets and bloom filters, and when you should (and shouldn't) use it."
+seo_title: "HyperLogLog: Billion Users in 12 KB"
+description: "How HyperLogLog counts billions of unique users in 12 KB, why it beats sets and Bloom filters for cardinality, and when you should not use it."
 date: 2026-10-04
 categories:
   - DataStructures
@@ -15,6 +16,7 @@ tags:
   - system-design
 author: "Saiteja Chada"
 reading_time: "8 min read"
+keywords: "hyperloglog, cardinality estimation, probabilistic data structures, redis, bloom filter"
 draft: false
 ---
 

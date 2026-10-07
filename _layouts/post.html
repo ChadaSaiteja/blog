@@ -91,6 +91,59 @@ layout: default
     </div>
     {%- endif %}
 
+    {%- comment -%}
+    Related posts.
+
+    Internal linking was the weakest crawl signal on the site: every post linked
+    only back to the index and to its immediate neighbours, so the archive had no
+    in-body path between sibling topics. This matches on shared categories and
+    renders a real anchor list, which gives crawlers a second route into the
+    archive and readers a next step.
+
+    Portable Liquid only, no `push` / `where_exp`, for the same reason as
+    index.html: scripts/blog/liquid_render.py renders this in a plain Liquid
+    engine. So the matches are accumulated into one delimited string and split
+    back out, and `~` is the url/title separator inside each entry.
+    {%- endcomment -%}
+    {%- if nav.show_related_posts -%}
+      {%- assign rel_limit = nav.related_post_limit | default: 3 -%}
+      {%- assign rel_sep = '||' -%}
+      {%- assign rel_items = '' -%}
+      {%- assign rel_count = 0 -%}
+      {%- for post in site.posts -%}
+        {%- unless post.draft -%}
+          {%- if post.url != page.url -%}
+            {%- assign shares_category = false -%}
+            {%- for cat in page.categories -%}
+              {%- for post_cat in post.categories -%}
+                {%- if cat == post_cat -%}
+                  {%- assign shares_category = true -%}
+                {%- endif -%}
+              {%- endfor -%}
+            {%- endfor -%}
+            {%- if shares_category and rel_count < rel_limit -%}
+              {%- assign rel_items = rel_items | append: post.url | append: '~' | append: post.title | append: rel_sep -%}
+              {%- assign rel_count = rel_count | plus: 1 -%}
+            {%- endif -%}
+          {%- endif -%}
+        {%- endunless -%}
+      {%- endfor -%}
+      {%- assign rel_list = rel_items | split: rel_sep | compact -%}
+      {%- if rel_list.size > 0 %}
+    <nav class="related-posts" aria-labelledby="related-posts-heading">
+      <h2 id="related-posts-heading">Related Posts</h2>
+      <ul class="related-posts__list">
+        {%- for entry in rel_list %}
+        {%- assign parts = entry | split: '~' %}
+        <li class="related-posts__item">
+          <a href="{{ parts[0] | relative_url }}">{{ parts[1] }}</a>
+        </li>
+        {%- endfor %}
+      </ul>
+    </nav>
+      {%- endif -%}
+    {%- endif -%}
+
     {%- if nav.show_author_card %}
     {% include author-card.html %}
     {%- endif %}

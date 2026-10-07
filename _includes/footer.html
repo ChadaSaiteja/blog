@@ -8,9 +8,18 @@ below and they will pick it up.
 {%- endcomment -%}
 <footer class="site-footer">
   <div class="footer-inner">
+    {%- comment -%}
+    The footer is currently the only navigation on the site: _includes/header.html
+    is commented out in _layouts/default.html, so the header nav does not render.
+    That makes the footer the sole crawl path to /about/, so About has to live
+    here rather than only in a nav that is switched off.
+    {%- endcomment -%}
     <nav class="footer-links" aria-label="Footer">
       <a class="footer-link" href="{{ site.baseurl }}/">Blog</a>
+      <a class="footer-link" href="{{ site.baseurl }}/about/">About</a>
       <a class="footer-link" href="{{ site.baseurl }}/feed.xml">RSS</a>
+      <a class="footer-link" href="https://github.com/chadasaiteja" rel="noopener me">GitHub</a>
+      <a class="footer-link" href="https://github.com/ChadaSaiteja/blog/issues" rel="noopener">Issues</a>
     </nav>
   </div>
 </footer>

@@ -122,6 +122,12 @@
    * Promotes `> [!NOTE]`-style GitHub Alerts to a styled callout. The marker
    * is stripped from the text, so nothing reads "[!NOTE]" to the visitor.
    * Runs client-side precisely so existing posts need no content edits.
+   *
+   * Both forms are handled, because both are easy to write and only one used
+   * to work. structure.callout_syntax in _data/blog_style.yml documents the
+   * marker as `[!NOTE]` without saying it must be inside a blockquote, so a
+   * bare paragraph marker used to fall through and ship the literal text
+   * "[!IMPORTANT]" to the reader.
    * ------------------------------------------------------------------- */
   function initCallouts() {
     var prose = document.getElementById('post-content');
@@ -144,6 +150,23 @@
       // A marker on its own line leaves an empty paragraph behind.
       var firstPara = bq.querySelector('p');
       if (firstPara && !firstPara.textContent.trim()) firstPara.remove();
+    });
+
+    // Bare marker on its own paragraph, with no surrounding blockquote.
+    each(prose.querySelectorAll('p'), function (para) {
+      if (para.classList.contains('callout')) return;
+      if (para.parentNode !== prose) return; // only top-level prose paragraphs
+
+      var paraWalker = document.createTreeWalker(para, NodeFilter.SHOW_TEXT, null);
+      var paraNode = paraWalker.nextNode();
+      if (!paraNode) return;
+
+      var paraMatch = paraNode.nodeValue.match(CALLOUT_RE);
+      if (!paraMatch) return;
+
+      paraNode.nodeValue = paraNode.nodeValue.replace(CALLOUT_RE, '');
+      para.classList.add('callout');
+      para.setAttribute('data-callout', paraMatch[1].toLowerCase());
     });
   }
 

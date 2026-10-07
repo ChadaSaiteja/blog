@@ -1698,6 +1698,50 @@ html, body {
 .series-note p { margin-bottom: 0; }
 .series-note a { color: var(--accent); }
 
+/* ---- Related posts (matched on shared categories) ----
+   Rendered by _layouts/post.html. The heading is an h2 that lives outside
+   .prose, so it needs the same scale as .post-title's siblings rather than the
+   in-prose heading ladder. */
+.related-posts {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.related-posts h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 var(--space-md);
+}
+
+.related-posts__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.related-posts__item a {
+  display: block;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  text-decoration: none;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.related-posts__item a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ---- Figures inside the prose ---- */
 .prose figure { margin: var(--space-lg) 0; }
 

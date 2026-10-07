@@ -1,6 +1,7 @@
 ---
 layout: post
 title: "Cut Your Coding Agent's Token Bill in Three Places: Graphify, Ponytail, Caveman"
+seo_title: "Cut Your AI Agent's Token Bill"
 description: "Where an agent's tokens actually go, one tool for each of the three leaks, and what an independent benchmark measured versus what each tool advertises."
 date: 2026-09-26
 categories:
@@ -19,6 +20,7 @@ tags:
   - cost-optimization
 author: "Saiteja Chada"
 reading_time: "8 min read"
+keywords: "llm token cost, ai agent optimization, claude code, codex, context engineering"
 draft: false
 ---
 

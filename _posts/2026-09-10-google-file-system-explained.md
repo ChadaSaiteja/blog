@@ -1,7 +1,8 @@
 ---
 layout: post
 title: "The Google File System: How Google Stores Petabytes on Cheap, Unreliable Machines"
-description: "A beginner-friendly walkthrough of the Google File System (GFS) — how chunking, replication, and heartbeats let thousands of ordinary machines behave like one giant, fault-tolerant hard drive."
+seo_title: "Google File System (GFS) Explained"
+description: "How the Google File System stores petabytes on cheap, unreliable machines: chunking, replication and heartbeats across thousands of disks."
 date: 2026-09-10
 categories:
   - DistributedSystems
@@ -15,6 +16,7 @@ tags:
   - file-systems
 author: "Saiteja Chada"
 reading_time: "9 min read"
+keywords: "google file system, gfs, hdfs, distributed file system, replication, chunking"
 draft: false
 ---
 

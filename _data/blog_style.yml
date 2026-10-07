@@ -166,6 +166,7 @@ structure:
   frontmatter_order:
     - layout
     - title
+    - seo_title
     - description
     - date
     - updated
@@ -174,11 +175,20 @@ structure:
     - author
     - reading_time
     - cover
+    - image
     - series
+    - keywords
+    - faq
     - draft
 
   required: [title, description, date, categories]
-  optional: [updated, tags, author, reading_time, cover, series, draft]
+  # seo_title  -> SERP title override. Lets the visible <h1> stay readable while
+  #               the <title> stays inside the ~60 char window Google renders.
+  # image      -> absolute-or-root social card for this post's og:image.
+  # keywords   -> comma-separated synonyms, emitted as <meta name="keywords">.
+  # faq        -> list of {q, a}. Rendered as a visible FAQ section AND as
+  #               FAQPage JSON-LD, which is the AEO win.
+  optional: [seo_title, updated, tags, author, reading_time, cover, image, series, keywords, faq, draft]
 
   defaults:
     layout: post
@@ -260,21 +270,22 @@ rubric:
   fence_aware_heading_scan: true
 
 # -----------------------------------------------------------------------------
-# AUTHOR — optional
+# AUTHOR
 # -----------------------------------------------------------------------------
-# There is no author card or footer profile on the site right now, so this
-# block is disabled. Everything that reads it is behind an existence guard, so
-# leaving it commented out is safe: _includes/author-card.html renders nothing,
-# and _includes/footer.html does not use it. Re-enable the block and set
-# navigation.show_author_card to true to bring the author card back.
+# Read by _includes/author-card.html and by the Person JSON-LD in
+# _includes/head-seo.html. The `sameAs` links are what let an AI engine resolve
+# this site to a real person instead of an anonymous blog, so they matter more
+# than the card they also power.
 #
-# author_profile:
-#   name: "Saiteja Chada"
-#   role: "Backend engineer working on distributed systems and developer tooling."
-#   initials: "SC"
-#   links:
-#     github: "https://github.com/chadasaiteja"
-#     linkedin: "https://www.linkedin.com/in/chada-saiteja/"
+# The Person schema additionally reads `author:` from _config.yml, which is the
+# canonical source. Keep the name and links here in sync with it.
+author_profile:
+  name: "Saiteja Chada"
+  role: "Backend engineer working on distributed systems and developer tooling."
+  initials: "SC"
+  links:
+    github: "https://github.com/chadasaiteja"
+    linkedin: "https://www.linkedin.com/in/chada-saiteja/"
 
 # -----------------------------------------------------------------------------
 # NAVIGATION
@@ -284,7 +295,14 @@ navigation:
   progress_height: "2px"
   show_share: true
   share_targets: [x, linkedin, copy]
-  # No author card: author_profile is disabled above, so this would render an
-  # empty box. Set both to bring it back.
-  show_author_card: false
+  # The author card is back on. author_profile is re-enabled above, so the card
+  # has real credentials and sameAs links to render. This is an E-E-A-T signal,
+  # not decoration.
+  show_author_card: true
   show_prev_next: true
+  # Related posts, matched on shared categories. Every post currently has few or
+  # zero in-body links to sibling posts, which leaves crawlers with the index as
+  # the only way into the archive. This adds a crawl path from every post to
+  # every related post.
+  show_related_posts: true
+  related_post_limit: 3

@@ -6,9 +6,11 @@ layout: null
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ page.title }} | Saiteja's Dev Blog</title>
-  <meta name="description" content="{{ page.description }}">
   <meta name="google-site-verification" content="rGwrTPLvkbtgUMk4zVAgc5VU0xutNGpT8NvMHbrYLF0" />
+
+  <!-- Title, description, canonical, Open Graph, Twitter card and JSON-LD.
+       See the include for why this is hand-rolled rather than jekyll-seo-tag. -->
+  {% include head-seo.html %}
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">

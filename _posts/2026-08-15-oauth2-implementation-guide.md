@@ -1,7 +1,8 @@
 ---
 layout: post
 title: "Understanding and Implementing OAuth 2.0: A Complete Developer's Guide"
-description: "A complete guide to OAuth 2.0, PKCE generation, single-use authorization code tickets, secure token storage, and step-by-step interaction flows."
+seo_title: "OAuth 2.0 Implementation Guide"
+description: "A complete OAuth 2.0 implementation guide: PKCE generation, single-use authorization code tickets, secure token storage, and the full interaction flow."
 date: 2026-08-15
 categories:
   - Security
@@ -14,6 +15,7 @@ tags:
   - architecture
 author: "Saiteja Chada"
 reading_time: "10 min read"
+keywords: "oauth 2.0, pkce, authorization code flow, token storage, authentication"
 draft: false
 ---
 
