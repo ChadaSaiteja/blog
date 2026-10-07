@@ -18,3 +18,8 @@ Thumbs.db
 
 # Local draft ideas (kept on disk, never committed)
 ideas/
+
+# Generated audit reports. Binary deliverables that are reproducible from the
+# scripts and only useful locally, so they stay out of the history.
+admin/seo-audit-*.docx
+admin/seo-audit-*.pdf
